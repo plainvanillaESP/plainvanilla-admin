@@ -8,23 +8,19 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body, #root { height: 100%; font-family: 'Inter', sans-serif; }
+        .material-icons-outlined { font-size: 20px; }
     </style>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        pv: {
-                            pink: '#f472b6',
-                            purple: '#a855f7',
-                            dark: '#1a1a2e'
-                        }
+                        pv: { pink: '#ff94a6', purple: '#8b37ed', dark: '#1a1a2e' }
                     }
                 }
             }
@@ -33,411 +29,146 @@
 </head>
 <body class="bg-gray-50">
     <div id="root"></div>
-    
     <script type="text/babel">
         const { useState, useEffect } = React;
-
-        // ============================================
-        // COMPONENTES
-        // ============================================
-
-        // Logo Plain Vanilla
-        const Logo = ({ className = "w-8 h-8" }) => (
-            <svg viewBox="0 0 100 100" className={className}>
-                <defs>
-                    <linearGradient id="pvGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#f472b6" />
-                        <stop offset="100%" stopColor="#a855f7" />
-                    </linearGradient>
-                </defs>
-                <circle cx="50" cy="50" r="48" fill="url(#pvGradient)" />
-                <path d="M50 15 L60 40 L85 50 L60 60 L50 85 L40 60 L15 50 L40 40 Z" fill="white" />
+        const Icon = ({ name, className = "" }) => (<span className={`material-icons-outlined ${className}`}>{name}</span>);
+        const Logo = ({ className = "w-10 h-10" }) => (
+            <svg viewBox="0 0 211.98 211.98" className={className}>
+                <defs><linearGradient id="pvGrad" x1="0" y1="105.99" x2="211.98" y2="105.99" gradientUnits="userSpaceOnUse"><stop offset="0" stopColor="#ff94a6"/><stop offset="1" stopColor="#8b37ed"/></linearGradient></defs>
+                <path fill="url(#pvGrad)" d="M56.43,105.99c21.77-10.17,39.38-27.79,49.56-49.56,10.18,21.77,27.79,39.38,49.56,49.56-21.77,10.18-39.39,27.79-49.56,49.56-10.18-21.77-27.79-39.39-49.56-49.56ZM211.98,92.84C163.57,86.86,125.12,48.41,119.14,0c48.4,5.97,86.86,44.43,92.83,92.83ZM92.84,0C86.87,48.41,48.41,86.87,0,92.84,5.97,44.43,44.43,5.97,92.84,0ZM0,119.15c48.4,5.98,86.86,44.43,92.83,92.83C44.43,206,5.98,167.55,0,119.15ZM119.14,211.98c5.97-48.41,44.43-86.87,92.84-92.84-5.97,48.41-44.43,86.87-92.84,92.84Z"/>
             </svg>
         );
-
-        // Pantalla de Login
         const LoginScreen = () => (
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
                 <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
                     <div className="text-center mb-8">
-                        <div className="flex justify-center mb-4">
-                            <Logo className="w-16 h-16" />
-                        </div>
+                        <div className="flex justify-center mb-4"><Logo className="w-20 h-20" /></div>
                         <h1 className="text-2xl font-bold text-gray-800">Plain Vanilla</h1>
                         <p className="text-gray-500 mt-2">Portal de Administración</p>
                     </div>
-                    
-                    <a 
-                        href="/auth/login"
-                        className="flex items-center justify-center gap-3 w-full bg-gray-800 hover:bg-gray-900 text-white py-3 px-6 rounded-lg font-medium transition-all"
-                    >
-                        <svg className="w-5 h-5" viewBox="0 0 21 21">
-                            <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
-                            <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
-                            <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
-                            <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
-                        </svg>
+                    <a href="/auth/login" className="flex items-center justify-center gap-3 w-full bg-gradient-to-r from-pv-pink to-pv-purple hover:opacity-90 text-white py-3 px-6 rounded-lg font-medium transition-all">
+                        <svg className="w-5 h-5" viewBox="0 0 21 21"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
                         Iniciar sesión con Microsoft
                     </a>
-                    
-                    <p className="text-center text-sm text-gray-400 mt-6">
-                        Solo usuarios autorizados de @plainvanilla.ai
-                    </p>
                 </div>
             </div>
         );
-
-        // Sidebar
         const Sidebar = ({ currentView, setCurrentView, user, onLogout }) => {
             const menuItems = [
-                { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-                { id: 'projects', label: 'Proyectos', icon: '📁' },
-                { id: 'proposals', label: 'Propuestas', icon: '📄' },
-                { id: 'clients', label: 'Clientes', icon: '👥' },
+                { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
+                { id: 'projects', label: 'Proyectos', icon: 'folder' },
+                { id: 'proposals', label: 'Propuestas', icon: 'description' },
+                { id: 'microsoft', label: 'Microsoft 365', icon: 'cloud' },
             ];
-
             return (
                 <div className="w-64 bg-gray-900 text-white flex flex-col">
-                    <div className="p-6 border-b border-gray-800">
-                        <div className="flex items-center gap-3">
-                            <Logo className="w-10 h-10" />
-                            <div>
-                                <div className="font-semibold">Plain Vanilla</div>
-                                <div className="text-xs text-gray-400">Admin Portal</div>
-                            </div>
-                        </div>
+                    <div className="p-5 border-b border-gray-800">
+                        <div className="flex items-center gap-3"><Logo className="w-9 h-9" /><div><div className="font-semibold text-sm">Plain Vanilla</div><div className="text-xs text-gray-500">Admin Portal</div></div></div>
                     </div>
-                    
-                    <nav className="flex-1 p-4">
+                    <nav className="flex-1 p-3">
                         {menuItems.map(item => (
-                            <button
-                                key={item.id}
-                                onClick={() => setCurrentView(item.id)}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg mb-1 transition-all ${
-                                    currentView === item.id 
-                                        ? 'bg-purple-600 text-white' 
-                                        : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                                }`}
-                            >
-                                <span>{item.icon}</span>
-                                <span>{item.label}</span>
+                            <button key={item.id} onClick={() => setCurrentView(item.id)} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-all text-sm ${currentView === item.id ? 'bg-gradient-to-r from-pv-pink/20 to-pv-purple/20 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}>
+                                <Icon name={item.icon} /><span>{item.label}</span>
                             </button>
                         ))}
                     </nav>
-                    
                     <div className="p-4 border-t border-gray-800">
                         <div className="flex items-center gap-3 mb-3">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-white font-medium">
-                                {user?.name?.charAt(0) || '?'}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <div className="font-medium truncate">{user?.name}</div>
-                                <div className="text-xs text-gray-400 truncate">{user?.email}</div>
-                            </div>
+                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pv-pink to-pv-purple flex items-center justify-center text-white font-medium text-sm">{user?.name?.charAt(0) || '?'}</div>
+                            <div className="flex-1 min-w-0"><div className="font-medium text-sm truncate">{user?.name}</div><div className="text-xs text-gray-500 truncate">{user?.email}</div></div>
                         </div>
-                        <button 
-                            onClick={onLogout}
-                            className="w-full text-left text-sm text-gray-400 hover:text-white transition-colors"
-                        >
-                            Cerrar sesión →
-                        </button>
+                        <button onClick={onLogout} className="w-full flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors"><Icon name="logout" /><span>Cerrar sesión</span></button>
                     </div>
                 </div>
             );
         };
-
-        // Vista Dashboard
-        const DashboardView = ({ projects }) => (
+        const Card = ({ children, className = "", onClick }) => (<div className={`bg-white rounded-xl shadow-sm border border-gray-100 ${onClick ? 'cursor-pointer hover:shadow-md transition-shadow' : ''} ${className}`} onClick={onClick}>{children}</div>);
+        const DashboardView = ({ projects, msStatus }) => (
             <div>
-                <h1 className="text-2xl font-bold text-gray-800 mb-6">Dashboard</h1>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                        <div className="text-3xl font-bold text-purple-600">{projects.length}</div>
-                        <div className="text-gray-500 mt-1">Proyectos activos</div>
-                    </div>
-                    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                        <div className="text-3xl font-bold text-green-600">0</div>
-                        <div className="text-gray-500 mt-1">Tareas pendientes</div>
-                    </div>
-                    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                        <div className="text-3xl font-bold text-blue-600">0</div>
-                        <div className="text-gray-500 mt-1">Propuestas activas</div>
-                    </div>
+                <div className="flex items-center justify-between mb-6"><h1 className="text-2xl font-bold text-gray-800">Dashboard</h1><div className="text-sm text-gray-500">{new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div></div>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <Card className="p-5"><div className="flex items-center justify-between"><div><div className="text-2xl font-bold text-gray-800">{projects.length}</div><div className="text-sm text-gray-500">Proyectos</div></div><div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center"><Icon name="folder" className="text-pv-purple" /></div></div></Card>
+                    <Card className="p-5"><div className="flex items-center justify-between"><div><div className="text-2xl font-bold text-gray-800">0</div><div className="text-sm text-gray-500">Tareas</div></div><div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center"><Icon name="task_alt" className="text-amber-600" /></div></div></Card>
+                    <Card className="p-5"><div className="flex items-center justify-between"><div><div className="text-2xl font-bold text-gray-800">0</div><div className="text-sm text-gray-500">Documentos</div></div><div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center"><Icon name="insert_drive_file" className="text-blue-600" /></div></div></Card>
+                    <Card className="p-5"><div className="flex items-center justify-between"><div><div className="text-2xl font-bold text-gray-800">{msStatus ? '✓' : '–'}</div><div className="text-sm text-gray-500">Microsoft</div></div><div className={`w-10 h-10 rounded-lg ${msStatus ? 'bg-green-100' : 'bg-gray-100'} flex items-center justify-center`}><Icon name="cloud" className={msStatus ? 'text-green-600' : 'text-gray-400'} /></div></div></Card>
                 </div>
-                
-                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                    <h2 className="text-lg font-semibold text-gray-800 mb-4">Últimos proyectos</h2>
-                    {projects.length === 0 ? (
-                        <p className="text-gray-500">No hay proyectos todavía</p>
-                    ) : (
-                        <div className="space-y-3">
-                            {projects.slice(0, 5).map(project => (
-                                <div key={project.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                    <div>
-                                        <div className="font-medium text-gray-800">{project.name}</div>
-                                        <div className="text-sm text-gray-500">{project.client}</div>
-                                    </div>
-                                    <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
-                                        {project.status}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    )}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <Card className="p-5"><h2 className="font-semibold text-gray-800 mb-4">Proyectos recientes</h2>{projects.length === 0 ? <div className="text-center py-8 text-gray-400"><Icon name="folder_open" className="text-4xl mb-2" /><p className="text-sm">No hay proyectos</p></div> : <div className="space-y-2">{projects.slice(0,4).map(p => (<div key={p.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50"><div className="w-8 h-8 rounded-lg bg-gradient-to-br from-pv-pink to-pv-purple flex items-center justify-center"><Icon name="folder" className="text-white text-sm" /></div><div className="flex-1 min-w-0"><div className="font-medium text-sm text-gray-800 truncate">{p.name}</div><div className="text-xs text-gray-500 truncate">{p.client}</div></div><span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">{p.status}</span></div>))}</div>}</Card>
+                    <Card className="p-5"><h2 className="font-semibold text-gray-800 mb-4">Integraciones</h2><div className="space-y-3"><div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50"><div className="w-8 h-8 rounded bg-[#036C70] flex items-center justify-center text-white text-xs font-bold">SP</div><div className="flex-1"><div className="font-medium text-sm">SharePoint</div><div className="text-xs text-gray-500">Documentos</div></div></div><div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50"><div className="w-8 h-8 rounded bg-[#31752F] flex items-center justify-center text-white text-xs font-bold">P</div><div className="flex-1"><div className="font-medium text-sm">Planner</div><div className="text-xs text-gray-500">Tareas</div></div></div><div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50"><div className="w-8 h-8 rounded bg-[#5059C9] flex items-center justify-center text-white text-xs font-bold">T</div><div className="flex-1"><div className="font-medium text-sm">Teams</div><div className="text-xs text-gray-500">Comunicación</div></div></div></div></Card>
                 </div>
             </div>
         );
-
-        // Vista Proyectos
-        const ProjectsView = ({ projects, onCreateProject, onRefresh }) => {
+        const ProjectsView = ({ projects, onCreateProject, selectedProject, setSelectedProject }) => {
             const [showModal, setShowModal] = useState(false);
             const [formData, setFormData] = useState({ name: '', client: '', description: '' });
             const [loading, setLoading] = useState(false);
-
-            const handleSubmit = async (e) => {
-                e.preventDefault();
-                setLoading(true);
-                await onCreateProject(formData);
-                setFormData({ name: '', client: '', description: '' });
-                setShowModal(false);
-                setLoading(false);
-            };
-
+            const handleSubmit = async (e) => { e.preventDefault(); setLoading(true); await onCreateProject(formData); setFormData({ name: '', client: '', description: '' }); setShowModal(false); setLoading(false); };
+            if (selectedProject) return <ProjectDetail project={selectedProject} onBack={() => setSelectedProject(null)} />;
             return (
                 <div>
-                    <div className="flex items-center justify-between mb-6">
-                        <h1 className="text-2xl font-bold text-gray-800">Proyectos</h1>
-                        <button 
-                            onClick={() => setShowModal(true)}
-                            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-                        >
-                            + Nuevo proyecto
-                        </button>
-                    </div>
-                    
-                    {projects.length === 0 ? (
-                        <div className="bg-white rounded-xl p-12 shadow-sm border border-gray-100 text-center">
-                            <div className="text-4xl mb-4">📁</div>
-                            <h3 className="text-lg font-medium text-gray-800 mb-2">No hay proyectos</h3>
-                            <p className="text-gray-500 mb-4">Crea tu primer proyecto para empezar</p>
-                            <button 
-                                onClick={() => setShowModal(true)}
-                                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-                            >
-                                Crear proyecto
-                            </button>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {projects.map(project => (
-                                <div key={project.id} className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                                    <div className="flex items-start justify-between mb-4">
-                                        <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-white text-xl">
-                                            📁
-                                        </div>
-                                        <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
-                                            {project.status}
-                                        </span>
-                                    </div>
-                                    <h3 className="font-semibold text-gray-800 mb-1">{project.name}</h3>
-                                    <p className="text-sm text-gray-500 mb-3">{project.client}</p>
-                                    {project.description && (
-                                        <p className="text-sm text-gray-600 mb-4 line-clamp-2">{project.description}</p>
-                                    )}
-                                    <div className="flex gap-2">
-                                        <button className="flex-1 text-center py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors">
-                                            Ver detalles
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    {showModal && (
-                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                            <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
-                                <h2 className="text-xl font-bold text-gray-800 mb-4">Nuevo proyecto</h2>
-                                <form onSubmit={handleSubmit}>
-                                    <div className="mb-4">
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Nombre del proyecto
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={formData.name}
-                                            onChange={e => setFormData({...formData, name: e.target.value})}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                            placeholder="Ej: Copilot Adoption Boluda"
-                                            required
-                                        />
-                                    </div>
-                                    <div className="mb-4">
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Cliente
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={formData.client}
-                                            onChange={e => setFormData({...formData, client: e.target.value})}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                            placeholder="Ej: Boluda Corporación Marítima"
-                                            required
-                                        />
-                                    </div>
-                                    <div className="mb-6">
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Descripción (opcional)
-                                        </label>
-                                        <textarea
-                                            value={formData.description}
-                                            onChange={e => setFormData({...formData, description: e.target.value})}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                            rows="3"
-                                            placeholder="Breve descripción del proyecto..."
-                                        />
-                                    </div>
-                                    <div className="flex gap-3">
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowModal(false)}
-                                            className="flex-1 py-2 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors"
-                                        >
-                                            Cancelar
-                                        </button>
-                                        <button
-                                            type="submit"
-                                            disabled={loading}
-                                            className="flex-1 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
-                                        >
-                                            {loading ? 'Creando...' : 'Crear proyecto'}
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    )}
+                    <div className="flex items-center justify-between mb-6"><h1 className="text-2xl font-bold text-gray-800">Proyectos</h1><button onClick={() => setShowModal(true)} className="flex items-center gap-2 bg-gradient-to-r from-pv-pink to-pv-purple hover:opacity-90 text-white px-4 py-2 rounded-lg text-sm font-medium"><Icon name="add" />Nuevo proyecto</button></div>
+                    {projects.length === 0 ? <Card className="p-12 text-center"><Icon name="folder_open" className="text-6xl text-gray-300 mb-4" /><h3 className="text-lg font-medium text-gray-800 mb-2">No hay proyectos</h3><p className="text-gray-500 mb-4">Crea tu primer proyecto</p><button onClick={() => setShowModal(true)} className="inline-flex items-center gap-2 bg-gradient-to-r from-pv-pink to-pv-purple text-white px-4 py-2 rounded-lg text-sm font-medium"><Icon name="add" />Crear proyecto</button></Card> : <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">{projects.map(p => (<Card key={p.id} className="p-5" onClick={() => setSelectedProject(p)}><div className="flex items-start justify-between mb-3"><div className="w-10 h-10 rounded-lg bg-gradient-to-br from-pv-pink to-pv-purple flex items-center justify-center"><Icon name="folder" className="text-white" /></div><span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">{p.status}</span></div><h3 className="font-semibold text-gray-800 mb-1">{p.name}</h3><p className="text-sm text-gray-500 mb-3">{p.client}</p><div className="flex items-center gap-4 mt-4 pt-4 border-t border-gray-100 text-xs text-gray-400"><span className="flex items-center gap-1"><Icon name="insert_drive_file" className="text-sm" /> 0</span><span className="flex items-center gap-1"><Icon name="task_alt" className="text-sm" /> 0</span></div></Card>))}</div>}
+                    {showModal && <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><Card className="p-6 max-w-md w-full mx-4"><div className="flex items-center justify-between mb-4"><h2 className="text-lg font-bold text-gray-800">Nuevo proyecto</h2><button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600"><Icon name="close" /></button></div><form onSubmit={handleSubmit}><div className="mb-4"><label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label><input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" required /></div><div className="mb-4"><label className="block text-sm font-medium text-gray-700 mb-1">Cliente</label><input type="text" value={formData.client} onChange={e => setFormData({...formData, client: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" required /></div><div className="mb-6"><label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label><textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" rows="3" /></div><div className="flex gap-3"><button type="button" onClick={() => setShowModal(false)} className="flex-1 py-2 border border-gray-300 rounded-lg text-sm">Cancelar</button><button type="submit" disabled={loading} className="flex-1 py-2 bg-gradient-to-r from-pv-pink to-pv-purple text-white rounded-lg text-sm disabled:opacity-50">{loading ? 'Creando...' : 'Crear'}</button></div></form></Card></div>}
                 </div>
             );
         };
-
-        // Vista Propuestas
-        const ProposalsView = () => (
+        const ProjectDetail = ({ project, onBack }) => (
             <div>
-                <h1 className="text-2xl font-bold text-gray-800 mb-6">Propuestas</h1>
-                <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100 text-center">
-                    <div className="text-4xl mb-4">📄</div>
-                    <h3 className="text-lg font-medium text-gray-800 mb-2">Sistema de Propuestas</h3>
-                    <p className="text-gray-500 mb-6">Gestiona tus propuestas interactivas</p>
-                    <a 
-                        href="https://propuestas.plainvanilla.ai/admin/"
-                        target="_blank"
-                        className="inline-block bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-                    >
-                        Abrir sistema de propuestas →
-                    </a>
+                <button onClick={onBack} className="flex items-center gap-2 text-gray-500 hover:text-gray-800 mb-4 text-sm"><Icon name="arrow_back" />Volver</button>
+                <div className="flex items-start justify-between mb-6"><div className="flex items-center gap-4"><div className="w-14 h-14 rounded-xl bg-gradient-to-br from-pv-pink to-pv-purple flex items-center justify-center"><Icon name="folder" className="text-white text-2xl" /></div><div><h1 className="text-2xl font-bold text-gray-800">{project.name}</h1><p className="text-gray-500">{project.client}</p></div></div><span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">{project.status}</span></div>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-2 space-y-6">
+                        <Card className="p-5"><div className="flex items-center justify-between mb-4"><h2 className="font-semibold text-gray-800 flex items-center gap-2"><Icon name="insert_drive_file" className="text-blue-600" />Documentos</h2></div><div className="text-center py-8 text-gray-400"><Icon name="cloud_upload" className="text-4xl mb-2" /><p className="text-sm">Conecta SharePoint</p></div></Card>
+                        <Card className="p-5"><div className="flex items-center justify-between mb-4"><h2 className="font-semibold text-gray-800 flex items-center gap-2"><Icon name="task_alt" className="text-green-600" />Tareas</h2></div><div className="text-center py-8 text-gray-400"><Icon name="checklist" className="text-4xl mb-2" /><p className="text-sm">Conecta Planner</p></div></Card>
+                    </div>
+                    <div className="space-y-6">
+                        <Card className="p-5"><h2 className="font-semibold text-gray-800 mb-4">Info</h2><div className="space-y-3 text-sm"><div className="flex justify-between"><span className="text-gray-500">Creado</span><span>{new Date(project.createdAt).toLocaleDateString('es-ES')}</span></div><div className="flex justify-between"><span className="text-gray-500">Por</span><span>{project.createdBy || '—'}</span></div></div></Card>
+                        <Card className="p-5"><h2 className="font-semibold text-gray-800 mb-4">Acciones</h2><div className="space-y-2"><button className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-[#036C70] text-white text-sm"><span className="font-bold">SP</span> SharePoint</button><button className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-[#31752F] text-white text-sm"><span className="font-bold">P</span> Planner</button><button className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-[#5059C9] text-white text-sm"><span className="font-bold">T</span> Teams</button></div></Card>
+                    </div>
                 </div>
             </div>
         );
-
-        // Vista Clientes
-        const ClientsView = () => (
-            <div>
-                <h1 className="text-2xl font-bold text-gray-800 mb-6">Clientes</h1>
-                <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100 text-center">
-                    <div className="text-4xl mb-4">🚧</div>
-                    <h3 className="text-lg font-medium text-gray-800 mb-2">Próximamente</h3>
-                    <p className="text-gray-500">Esta sección estará disponible pronto</p>
+        const ProposalsView = () => (<div><h1 className="text-2xl font-bold text-gray-800 mb-6">Propuestas</h1><Card className="p-8 text-center"><Icon name="description" className="text-6xl text-gray-300 mb-4" /><h3 className="text-lg font-medium text-gray-800 mb-2">Sistema de Propuestas</h3><p className="text-gray-500 mb-6">Gestiona tus propuestas interactivas</p><a href="https://propuestas.plainvanilla.ai/admin/" target="_blank" className="inline-flex items-center gap-2 bg-gradient-to-r from-pv-pink to-pv-purple text-white px-6 py-2 rounded-lg text-sm font-medium"><Icon name="open_in_new" />Abrir</a></Card></div>);
+        const MicrosoftView = ({ msData, onRefresh }) => {
+            const [loading, setLoading] = useState(false);
+            const testConnection = async (endpoint, label) => { setLoading(true); try { const res = await fetch(endpoint); const data = await res.json(); alert(`${label}: ${res.ok ? 'OK ✓' : 'Error'}\n${JSON.stringify(data, null, 2)}`); if (endpoint === '/api/teams' && Array.isArray(data)) onRefresh(); } catch (e) { alert(e.message); } setLoading(false); };
+            return (
+                <div>
+                    <div className="flex items-center justify-between mb-6"><h1 className="text-2xl font-bold text-gray-800">Microsoft 365</h1><button onClick={onRefresh} className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800"><Icon name="refresh" />Actualizar</button></div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <Card className="p-5"><div className="flex items-center gap-3 mb-4"><div className="w-10 h-10 rounded-lg bg-[#036C70] flex items-center justify-center text-white font-bold">SP</div><div><div className="font-semibold">SharePoint</div><div className="text-xs text-gray-500">Documentos</div></div></div><button onClick={() => testConnection('/api/sharepoint/root', 'SharePoint')} disabled={loading} className="w-full py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50">Probar</button></Card>
+                        <Card className="p-5"><div className="flex items-center gap-3 mb-4"><div className="w-10 h-10 rounded-lg bg-[#5059C9] flex items-center justify-center text-white font-bold">T</div><div><div className="font-semibold">Teams</div><div className="text-xs text-gray-500">Comunicación</div></div></div><button onClick={() => testConnection('/api/teams', 'Teams')} disabled={loading} className="w-full py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50">Probar</button></Card>
+                        <Card className="p-5"><div className="flex items-center gap-3 mb-4"><div className="w-10 h-10 rounded-lg bg-[#31752F] flex items-center justify-center text-white font-bold">P</div><div><div className="font-semibold">Planner</div><div className="text-xs text-gray-500">Tareas</div></div></div><button disabled className="w-full py-2 border border-gray-200 rounded-lg text-sm text-gray-400">Próximamente</button></Card>
+                    </div>
+                    <Card className="p-5"><h2 className="font-semibold text-gray-800 mb-4">Equipos de Teams</h2>{msData.teams?.length > 0 ? <div className="space-y-2">{msData.teams.map(t => (<div key={t.id} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50"><div className="w-8 h-8 rounded bg-[#5059C9] flex items-center justify-center text-white text-xs font-bold">{t.displayName?.charAt(0)}</div><div><div className="font-medium text-sm">{t.displayName}</div><div className="text-xs text-gray-500">{t.description || ''}</div></div></div>))}</div> : <div className="text-center py-6 text-gray-400"><Icon name="groups" className="text-4xl mb-2" /><p className="text-sm">Pulsa "Probar" en Teams</p></div>}</Card>
                 </div>
-            </div>
-        );
-
-        // ============================================
-        // APP PRINCIPAL
-        // ============================================
-
+            );
+        };
         function App() {
             const [user, setUser] = useState(null);
             const [loading, setLoading] = useState(true);
             const [currentView, setCurrentView] = useState('dashboard');
             const [projects, setProjects] = useState([]);
-
-            useEffect(() => {
-                fetch('/api/me')
-                    .then(res => {
-                        if (res.ok) return res.json();
-                        throw new Error('Not authenticated');
-                    })
-                    .then(data => {
-                        setUser(data);
-                        loadProjects();
-                    })
-                    .catch(() => {
-                        setUser(null);
-                    })
-                    .finally(() => setLoading(false));
-            }, []);
-
-            const loadProjects = () => {
-                fetch('/api/projects')
-                    .then(res => res.json())
-                    .then(data => setProjects(data))
-                    .catch(err => console.error('Error cargando proyectos:', err));
-            };
-
-            const handleCreateProject = async (data) => {
-                const res = await fetch('/api/projects', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                if (res.ok) {
-                    loadProjects();
-                }
-            };
-
-            const handleLogout = () => {
-                window.location.href = '/auth/logout';
-            };
-
-            if (loading) {
-                return (
-                    <div className="min-h-screen flex items-center justify-center">
-                        <div className="animate-spin w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full"></div>
-                    </div>
-                );
-            }
-
-            if (!user) {
-                return <LoginScreen />;
-            }
-
+            const [selectedProject, setSelectedProject] = useState(null);
+            const [msData, setMsData] = useState({ teams: [] });
+            useEffect(() => { fetch('/api/me').then(r => r.ok ? r.json() : Promise.reject()).then(d => { setUser(d); loadProjects(); }).catch(() => setUser(null)).finally(() => setLoading(false)); }, []);
+            const loadProjects = () => { fetch('/api/projects').then(r => r.json()).then(setProjects).catch(console.error); };
+            const handleCreateProject = async (data) => { const res = await fetch('/api/projects', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }); if (res.ok) loadProjects(); };
+            const loadMsData = async () => { try { const teams = await fetch('/api/teams').then(r => r.json()); setMsData({ teams: Array.isArray(teams) ? teams : [] }); } catch (e) {} };
+            if (loading) return <div className="min-h-screen flex items-center justify-center"><Logo className="w-16 h-16 animate-pulse" /></div>;
+            if (!user) return <LoginScreen />;
             return (
                 <div className="min-h-screen flex">
-                    <Sidebar 
-                        currentView={currentView} 
-                        setCurrentView={setCurrentView}
-                        user={user}
-                        onLogout={handleLogout}
-                    />
-                    
-                    <main className="flex-1 p-8 overflow-auto">
-                        {currentView === 'dashboard' && <DashboardView projects={projects} />}
-                        {currentView === 'projects' && (
-                            <ProjectsView 
-                                projects={projects} 
-                                onCreateProject={handleCreateProject}
-                                onRefresh={loadProjects}
-                            />
-                        )}
+                    <Sidebar currentView={currentView} setCurrentView={(v) => { setCurrentView(v); setSelectedProject(null); }} user={user} onLogout={() => window.location.href = '/auth/logout'} />
+                    <main className="flex-1 p-6 overflow-auto bg-gray-50">
+                        {currentView === 'dashboard' && <DashboardView projects={projects} msStatus={msData.teams?.length > 0} />}
+                        {currentView === 'projects' && <ProjectsView projects={projects} onCreateProject={handleCreateProject} selectedProject={selectedProject} setSelectedProject={setSelectedProject} />}
                         {currentView === 'proposals' && <ProposalsView />}
-                        {currentView === 'clients' && <ClientsView />}
+                        {currentView === 'microsoft' && <MicrosoftView msData={msData} onRefresh={loadMsData} />}
                     </main>
                 </div>
             );
         }
-
         ReactDOM.render(<App />, document.getElementById('root'));
     </script>
 </body>
