@@ -66,3 +66,4 @@ Ver `docs/SETUP.md` para la configuración inicial.
 ## 📝 Licencia
 
 Privado - Plain Vanilla Solutions
+# Test
