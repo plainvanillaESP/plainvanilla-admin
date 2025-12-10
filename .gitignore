@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Environment variables (contiene secrets!)
+.env
+
+# Datos locales
+data/
+*.json.backup
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Build
+dist/
+build/

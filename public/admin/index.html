@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Plain Vanilla</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body, #root { height: 100%; font-family: 'Inter', sans-serif; }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        pv: {
+                            pink: '#f472b6',
+                            purple: '#a855f7',
+                            dark: '#1a1a2e'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50">
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // ============================================
+        // COMPONENTES
+        // ============================================
+
+        // Logo Plain Vanilla
+        const Logo = ({ className = "w-8 h-8" }) => (
+            <svg viewBox="0 0 100 100" className={className}>
+                <defs>
+                    <linearGradient id="pvGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#f472b6" />
+                        <stop offset="100%" stopColor="#a855f7" />
+                    </linearGradient>
+                </defs>
+                <circle cx="50" cy="50" r="48" fill="url(#pvGradient)" />
+                <path d="M50 15 L60 40 L85 50 L60 60 L50 85 L40 60 L15 50 L40 40 Z" fill="white" />
+            </svg>
+        );
+
+        // Pantalla de Login
+        const LoginScreen = () => (
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
+                <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
+                    <div className="text-center mb-8">
+                        <div className="flex justify-center mb-4">
+                            <Logo className="w-16 h-16" />
+                        </div>
+                        <h1 className="text-2xl font-bold text-gray-800">Plain Vanilla</h1>
+                        <p className="text-gray-500 mt-2">Portal de Administración</p>
+                    </div>
+                    
+                    <a 
+                        href="/auth/login"
+                        className="flex items-center justify-center gap-3 w-full bg-gray-800 hover:bg-gray-900 text-white py-3 px-6 rounded-lg font-medium transition-all"
+                    >
+                        <svg className="w-5 h-5" viewBox="0 0 21 21">
+                            <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+                            <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+                            <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+                            <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+                        </svg>
+                        Iniciar sesión con Microsoft
+                    </a>
+                    
+                    <p className="text-center text-sm text-gray-400 mt-6">
+                        Solo usuarios autorizados de @plainvanilla.ai
+                    </p>
+                </div>
+            </div>
+        );
+
+        // Sidebar
+        const Sidebar = ({ currentView, setCurrentView, user, onLogout }) => {
+            const menuItems = [
+                { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+                { id: 'projects', label: 'Proyectos', icon: '📁' },
+                { id: 'proposals', label: 'Propuestas', icon: '📄' },
+                { id: 'clients', label: 'Clientes', icon: '👥' },
+            ];
+
+            return (
+                <div className="w-64 bg-gray-900 text-white flex flex-col">
+                    <div className="p-6 border-b border-gray-800">
+                        <div className="flex items-center gap-3">
+                            <Logo className="w-10 h-10" />
+                            <div>
+                                <div className="font-semibold">Plain Vanilla</div>
+                                <div className="text-xs text-gray-400">Admin Portal</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <nav className="flex-1 p-4">
+                        {menuItems.map(item => (
+                            <button
+                                key={item.id}
+                                onClick={() => setCurrentView(item.id)}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg mb-1 transition-all ${
+                                    currentView === item.id 
+                                        ? 'bg-purple-600 text-white' 
+                                        : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                                }`}
+                            >
+                                <span>{item.icon}</span>
+                                <span>{item.label}</span>
+                            </button>
+                        ))}
+                    </nav>
+                    
+                    <div className="p-4 border-t border-gray-800">
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-white font-medium">
+                                {user?.name?.charAt(0) || '?'}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="font-medium truncate">{user?.name}</div>
+                                <div className="text-xs text-gray-400 truncate">{user?.email}</div>
+                            </div>
+                        </div>
+                        <button 
+                            onClick={onLogout}
+                            className="w-full text-left text-sm text-gray-400 hover:text-white transition-colors"
+                        >
+                            Cerrar sesión →
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        // Vista Dashboard
+        const DashboardView = ({ projects }) => (
+            <div>
+                <h1 className="text-2xl font-bold text-gray-800 mb-6">Dashboard</h1>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                        <div className="text-3xl font-bold text-purple-600">{projects.length}</div>
+                        <div className="text-gray-500 mt-1">Proyectos activos</div>
+                    </div>
+                    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                        <div className="text-3xl font-bold text-green-600">0</div>
+                        <div className="text-gray-500 mt-1">Tareas pendientes</div>
+                    </div>
+                    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                        <div className="text-3xl font-bold text-blue-600">0</div>
+                        <div className="text-gray-500 mt-1">Propuestas activas</div>
+                    </div>
+                </div>
+                
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                    <h2 className="text-lg font-semibold text-gray-800 mb-4">Últimos proyectos</h2>
+                    {projects.length === 0 ? (
+                        <p className="text-gray-500">No hay proyectos todavía</p>
+                    ) : (
+                        <div className="space-y-3">
+                            {projects.slice(0, 5).map(project => (
+                                <div key={project.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <div>
+                                        <div className="font-medium text-gray-800">{project.name}</div>
+                                        <div className="text-sm text-gray-500">{project.client}</div>
+                                    </div>
+                                    <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
+                                        {project.status}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+
+        // Vista Proyectos
+        const ProjectsView = ({ projects, onCreateProject, onRefresh }) => {
+            const [showModal, setShowModal] = useState(false);
+            const [formData, setFormData] = useState({ name: '', client: '', description: '' });
+            const [loading, setLoading] = useState(false);
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setLoading(true);
+                await onCreateProject(formData);
+                setFormData({ name: '', client: '', description: '' });
+                setShowModal(false);
+                setLoading(false);
+            };
+
+            return (
+                <div>
+                    <div className="flex items-center justify-between mb-6">
+                        <h1 className="text-2xl font-bold text-gray-800">Proyectos</h1>
+                        <button 
+                            onClick={() => setShowModal(true)}
+                            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                        >
+                            + Nuevo proyecto
+                        </button>
+                    </div>
+                    
+                    {projects.length === 0 ? (
+                        <div className="bg-white rounded-xl p-12 shadow-sm border border-gray-100 text-center">
+                            <div className="text-4xl mb-4">📁</div>
+                            <h3 className="text-lg font-medium text-gray-800 mb-2">No hay proyectos</h3>
+                            <p className="text-gray-500 mb-4">Crea tu primer proyecto para empezar</p>
+                            <button 
+                                onClick={() => setShowModal(true)}
+                                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                            >
+                                Crear proyecto
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {projects.map(project => (
+                                <div key={project.id} className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                                    <div className="flex items-start justify-between mb-4">
+                                        <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-white text-xl">
+                                            📁
+                                        </div>
+                                        <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
+                                            {project.status}
+                                        </span>
+                                    </div>
+                                    <h3 className="font-semibold text-gray-800 mb-1">{project.name}</h3>
+                                    <p className="text-sm text-gray-500 mb-3">{project.client}</p>
+                                    {project.description && (
+                                        <p className="text-sm text-gray-600 mb-4 line-clamp-2">{project.description}</p>
+                                    )}
+                                    <div className="flex gap-2">
+                                        <button className="flex-1 text-center py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors">
+                                            Ver detalles
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {showModal && (
+                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                            <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
+                                <h2 className="text-xl font-bold text-gray-800 mb-4">Nuevo proyecto</h2>
+                                <form onSubmit={handleSubmit}>
+                                    <div className="mb-4">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Nombre del proyecto
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={formData.name}
+                                            onChange={e => setFormData({...formData, name: e.target.value})}
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                            placeholder="Ej: Copilot Adoption Boluda"
+                                            required
+                                        />
+                                    </div>
+                                    <div className="mb-4">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Cliente
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={formData.client}
+                                            onChange={e => setFormData({...formData, client: e.target.value})}
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                            placeholder="Ej: Boluda Corporación Marítima"
+                                            required
+                                        />
+                                    </div>
+                                    <div className="mb-6">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Descripción (opcional)
+                                        </label>
+                                        <textarea
+                                            value={formData.description}
+                                            onChange={e => setFormData({...formData, description: e.target.value})}
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                            rows="3"
+                                            placeholder="Breve descripción del proyecto..."
+                                        />
+                                    </div>
+                                    <div className="flex gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowModal(false)}
+                                            className="flex-1 py-2 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                                        >
+                                            Cancelar
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            disabled={loading}
+                                            className="flex-1 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+                                        >
+                                            {loading ? 'Creando...' : 'Crear proyecto'}
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // Vista Propuestas
+        const ProposalsView = () => (
+            <div>
+                <h1 className="text-2xl font-bold text-gray-800 mb-6">Propuestas</h1>
+                <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100 text-center">
+                    <div className="text-4xl mb-4">📄</div>
+                    <h3 className="text-lg font-medium text-gray-800 mb-2">Sistema de Propuestas</h3>
+                    <p className="text-gray-500 mb-6">Gestiona tus propuestas interactivas</p>
+                    <a 
+                        href="https://propuestas.plainvanilla.ai/admin/"
+                        target="_blank"
+                        className="inline-block bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                    >
+                        Abrir sistema de propuestas →
+                    </a>
+                </div>
+            </div>
+        );
+
+        // Vista Clientes
+        const ClientsView = () => (
+            <div>
+                <h1 className="text-2xl font-bold text-gray-800 mb-6">Clientes</h1>
+                <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100 text-center">
+                    <div className="text-4xl mb-4">🚧</div>
+                    <h3 className="text-lg font-medium text-gray-800 mb-2">Próximamente</h3>
+                    <p className="text-gray-500">Esta sección estará disponible pronto</p>
+                </div>
+            </div>
+        );
+
+        // ============================================
+        // APP PRINCIPAL
+        // ============================================
+
+        function App() {
+            const [user, setUser] = useState(null);
+            const [loading, setLoading] = useState(true);
+            const [currentView, setCurrentView] = useState('dashboard');
+            const [projects, setProjects] = useState([]);
+
+            useEffect(() => {
+                fetch('/api/me')
+                    .then(res => {
+                        if (res.ok) return res.json();
+                        throw new Error('Not authenticated');
+                    })
+                    .then(data => {
+                        setUser(data);
+                        loadProjects();
+                    })
+                    .catch(() => {
+                        setUser(null);
+                    })
+                    .finally(() => setLoading(false));
+            }, []);
+
+            const loadProjects = () => {
+                fetch('/api/projects')
+                    .then(res => res.json())
+                    .then(data => setProjects(data))
+                    .catch(err => console.error('Error cargando proyectos:', err));
+            };
+
+            const handleCreateProject = async (data) => {
+                const res = await fetch('/api/projects', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                if (res.ok) {
+                    loadProjects();
+                }
+            };
+
+            const handleLogout = () => {
+                window.location.href = '/auth/logout';
+            };
+
+            if (loading) {
+                return (
+                    <div className="min-h-screen flex items-center justify-center">
+                        <div className="animate-spin w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full"></div>
+                    </div>
+                );
+            }
+
+            if (!user) {
+                return <LoginScreen />;
+            }
+
+            return (
+                <div className="min-h-screen flex">
+                    <Sidebar 
+                        currentView={currentView} 
+                        setCurrentView={setCurrentView}
+                        user={user}
+                        onLogout={handleLogout}
+                    />
+                    
+                    <main className="flex-1 p-8 overflow-auto">
+                        {currentView === 'dashboard' && <DashboardView projects={projects} />}
+                        {currentView === 'projects' && (
+                            <ProjectsView 
+                                projects={projects} 
+                                onCreateProject={handleCreateProject}
+                                onRefresh={loadProjects}
+                            />
+                        )}
+                        {currentView === 'proposals' && <ProposalsView />}
+                        {currentView === 'clients' && <ClientsView />}
+                    </main>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
