@@ -16,28 +16,27 @@
         .material-icons-outlined { font-size: 20px; }
     </style>
     <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        pv: { pink: '#ff94a6', purple: '#8b37ed', dark: '#1a1a2e' }
-                    }
-                }
-            }
-        }
+        tailwind.config = { theme: { extend: { colors: { pv: { pink: '#ff94a6', purple: '#8b37ed' } } } } }
     </script>
 </head>
 <body class="bg-gray-50">
     <div id="root"></div>
     <script type="text/babel">
         const { useState, useEffect } = React;
-        const Icon = ({ name, className = "" }) => (<span className={`material-icons-outlined ${className}`}>{name}</span>);
+        const Icon = ({ name, className = "" }) => <span className={`material-icons-outlined ${className}`}>{name}</span>;
         const Logo = ({ className = "w-10 h-10" }) => (
             <svg viewBox="0 0 211.98 211.98" className={className}>
-                <defs><linearGradient id="pvGrad" x1="0" y1="105.99" x2="211.98" y2="105.99" gradientUnits="userSpaceOnUse"><stop offset="0" stopColor="#ff94a6"/><stop offset="1" stopColor="#8b37ed"/></linearGradient></defs>
+                <defs><linearGradient id="pvGrad" x1="0" y1="105.99" x2="211.98" y2="105.99"><stop offset="0" stopColor="#ff94a6"/><stop offset="1" stopColor="#8b37ed"/></linearGradient></defs>
                 <path fill="url(#pvGrad)" d="M56.43,105.99c21.77-10.17,39.38-27.79,49.56-49.56,10.18,21.77,27.79,39.38,49.56,49.56-21.77,10.18-39.39,27.79-49.56,49.56-10.18-21.77-27.79-39.39-49.56-49.56ZM211.98,92.84C163.57,86.86,125.12,48.41,119.14,0c48.4,5.97,86.86,44.43,92.83,92.83ZM92.84,0C86.87,48.41,48.41,86.87,0,92.84,5.97,44.43,44.43,5.97,92.84,0ZM0,119.15c48.4,5.98,86.86,44.43,92.83,92.83C44.43,206,5.98,167.55,0,119.15ZM119.14,211.98c5.97-48.41,44.43-86.87,92.84-92.84-5.97,48.41-44.43,86.87-92.84,92.84Z"/>
             </svg>
         );
+
+        const api = {
+            get: (url) => fetch(url).then(r => r.ok ? r.json() : Promise.reject(r)),
+            post: (url, data) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(r => r.ok ? r.json() : r.json().then(e => Promise.reject(e))),
+            delete: (url) => fetch(url, { method: 'DELETE' }).then(r => r.json())
+        };
+
         const LoginScreen = () => (
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
                 <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
@@ -46,129 +45,407 @@
                         <h1 className="text-2xl font-bold text-gray-800">Plain Vanilla</h1>
                         <p className="text-gray-500 mt-2">Portal de Administración</p>
                     </div>
-                    <a href="/auth/login" className="flex items-center justify-center gap-3 w-full bg-gradient-to-r from-pv-pink to-pv-purple hover:opacity-90 text-white py-3 px-6 rounded-lg font-medium transition-all">
+                    <a href="/auth/login" className="flex items-center justify-center gap-3 w-full bg-gradient-to-r from-pv-pink to-pv-purple hover:opacity-90 text-white py-3 px-6 rounded-lg font-medium">
                         <svg className="w-5 h-5" viewBox="0 0 21 21"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
                         Iniciar sesión con Microsoft
                     </a>
                 </div>
             </div>
         );
+
         const Sidebar = ({ currentView, setCurrentView, user, onLogout }) => {
-            const menuItems = [
+            const items = [
                 { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
                 { id: 'projects', label: 'Proyectos', icon: 'folder' },
                 { id: 'proposals', label: 'Propuestas', icon: 'description' },
-                { id: 'microsoft', label: 'Microsoft 365', icon: 'cloud' },
+                { id: 'settings', label: 'Configuración', icon: 'settings' },
             ];
             return (
                 <div className="w-64 bg-gray-900 text-white flex flex-col">
-                    <div className="p-5 border-b border-gray-800">
-                        <div className="flex items-center gap-3"><Logo className="w-9 h-9" /><div><div className="font-semibold text-sm">Plain Vanilla</div><div className="text-xs text-gray-500">Admin Portal</div></div></div>
+                    <div className="p-5 border-b border-gray-800 flex items-center gap-3">
+                        <Logo className="w-9 h-9" />
+                        <div><div className="font-semibold text-sm">Plain Vanilla</div><div className="text-xs text-gray-500">Admin Portal</div></div>
                     </div>
                     <nav className="flex-1 p-3">
-                        {menuItems.map(item => (
-                            <button key={item.id} onClick={() => setCurrentView(item.id)} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-all text-sm ${currentView === item.id ? 'bg-gradient-to-r from-pv-pink/20 to-pv-purple/20 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}>
+                        {items.map(item => (
+                            <button key={item.id} onClick={() => setCurrentView(item.id)} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 text-sm ${currentView === item.id ? 'bg-gradient-to-r from-pv-pink/20 to-pv-purple/20 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}>
                                 <Icon name={item.icon} /><span>{item.label}</span>
                             </button>
                         ))}
                     </nav>
                     <div className="p-4 border-t border-gray-800">
                         <div className="flex items-center gap-3 mb-3">
-                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pv-pink to-pv-purple flex items-center justify-center text-white font-medium text-sm">{user?.name?.charAt(0) || '?'}</div>
+                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pv-pink to-pv-purple flex items-center justify-center text-white font-medium text-sm">{user?.name?.charAt(0)}</div>
                             <div className="flex-1 min-w-0"><div className="font-medium text-sm truncate">{user?.name}</div><div className="text-xs text-gray-500 truncate">{user?.email}</div></div>
                         </div>
-                        <button onClick={onLogout} className="w-full flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors"><Icon name="logout" /><span>Cerrar sesión</span></button>
+                        <button onClick={onLogout} className="w-full flex items-center gap-2 text-sm text-gray-400 hover:text-white"><Icon name="logout" />Cerrar sesión</button>
                     </div>
                 </div>
             );
         };
-        const Card = ({ children, className = "", onClick }) => (<div className={`bg-white rounded-xl shadow-sm border border-gray-100 ${onClick ? 'cursor-pointer hover:shadow-md transition-shadow' : ''} ${className}`} onClick={onClick}>{children}</div>);
-        const DashboardView = ({ projects, msStatus }) => (
+
+        const Card = ({ children, className = "", onClick }) => <div className={`bg-white rounded-xl shadow-sm border border-gray-100 ${onClick ? 'cursor-pointer hover:shadow-md transition-shadow' : ''} ${className}`} onClick={onClick}>{children}</div>;
+
+        const DashboardView = ({ projects }) => (
             <div>
-                <div className="flex items-center justify-between mb-6"><h1 className="text-2xl font-bold text-gray-800">Dashboard</h1><div className="text-sm text-gray-500">{new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div></div>
+                <h1 className="text-2xl font-bold text-gray-800 mb-6">Dashboard</h1>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                    <Card className="p-5"><div className="flex items-center justify-between"><div><div className="text-2xl font-bold text-gray-800">{projects.length}</div><div className="text-sm text-gray-500">Proyectos</div></div><div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center"><Icon name="folder" className="text-pv-purple" /></div></div></Card>
-                    <Card className="p-5"><div className="flex items-center justify-between"><div><div className="text-2xl font-bold text-gray-800">0</div><div className="text-sm text-gray-500">Tareas</div></div><div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center"><Icon name="task_alt" className="text-amber-600" /></div></div></Card>
-                    <Card className="p-5"><div className="flex items-center justify-between"><div><div className="text-2xl font-bold text-gray-800">0</div><div className="text-sm text-gray-500">Documentos</div></div><div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center"><Icon name="insert_drive_file" className="text-blue-600" /></div></div></Card>
-                    <Card className="p-5"><div className="flex items-center justify-between"><div><div className="text-2xl font-bold text-gray-800">{msStatus ? '✓' : '–'}</div><div className="text-sm text-gray-500">Microsoft</div></div><div className={`w-10 h-10 rounded-lg ${msStatus ? 'bg-green-100' : 'bg-gray-100'} flex items-center justify-center`}><Icon name="cloud" className={msStatus ? 'text-green-600' : 'text-gray-400'} /></div></div></Card>
+                    <Card className="p-5"><div className="flex items-center justify-between"><div><div className="text-2xl font-bold">{projects.length}</div><div className="text-sm text-gray-500">Proyectos</div></div><div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center"><Icon name="folder" className="text-pv-purple" /></div></div></Card>
+                    <Card className="p-5"><div className="flex items-center justify-between"><div><div className="text-2xl font-bold">{projects.filter(p => p.sharepoint).length}</div><div className="text-sm text-gray-500">Con SharePoint</div></div><div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center"><Icon name="cloud" className="text-teal-600" /></div></div></Card>
+                    <Card className="p-5"><div className="flex items-center justify-between"><div><div className="text-2xl font-bold">{projects.filter(p => p.planner).length}</div><div className="text-sm text-gray-500">Con Planner</div></div><div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center"><Icon name="task_alt" className="text-green-600" /></div></div></Card>
+                    <Card className="p-5"><div className="flex items-center justify-between"><div><div className="text-2xl font-bold">{projects.filter(p => p.teams).length}</div><div className="text-sm text-gray-500">Con Teams</div></div><div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center"><Icon name="groups" className="text-indigo-600" /></div></div></Card>
                 </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <Card className="p-5"><h2 className="font-semibold text-gray-800 mb-4">Proyectos recientes</h2>{projects.length === 0 ? <div className="text-center py-8 text-gray-400"><Icon name="folder_open" className="text-4xl mb-2" /><p className="text-sm">No hay proyectos</p></div> : <div className="space-y-2">{projects.slice(0,4).map(p => (<div key={p.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50"><div className="w-8 h-8 rounded-lg bg-gradient-to-br from-pv-pink to-pv-purple flex items-center justify-center"><Icon name="folder" className="text-white text-sm" /></div><div className="flex-1 min-w-0"><div className="font-medium text-sm text-gray-800 truncate">{p.name}</div><div className="text-xs text-gray-500 truncate">{p.client}</div></div><span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">{p.status}</span></div>))}</div>}</Card>
-                    <Card className="p-5"><h2 className="font-semibold text-gray-800 mb-4">Integraciones</h2><div className="space-y-3"><div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50"><div className="w-8 h-8 rounded bg-[#036C70] flex items-center justify-center text-white text-xs font-bold">SP</div><div className="flex-1"><div className="font-medium text-sm">SharePoint</div><div className="text-xs text-gray-500">Documentos</div></div></div><div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50"><div className="w-8 h-8 rounded bg-[#31752F] flex items-center justify-center text-white text-xs font-bold">P</div><div className="flex-1"><div className="font-medium text-sm">Planner</div><div className="text-xs text-gray-500">Tareas</div></div></div><div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50"><div className="w-8 h-8 rounded bg-[#5059C9] flex items-center justify-center text-white text-xs font-bold">T</div><div className="flex-1"><div className="font-medium text-sm">Teams</div><div className="text-xs text-gray-500">Comunicación</div></div></div></div></Card>
-                </div>
+                <Card className="p-5">
+                    <h2 className="font-semibold mb-4">Proyectos recientes</h2>
+                    {projects.length === 0 ? <p className="text-gray-400 text-center py-8">No hay proyectos</p> : (
+                        <div className="space-y-2">{projects.slice(0, 5).map(p => (
+                            <div key={p.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50">
+                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-pv-pink to-pv-purple flex items-center justify-center"><Icon name="folder" className="text-white text-sm" /></div>
+                                <div className="flex-1"><div className="font-medium text-sm">{p.name}</div><div className="text-xs text-gray-500">{p.client}</div></div>
+                                <div className="flex gap-1">
+                                    {p.sharepoint && <span className="w-6 h-6 rounded bg-teal-100 flex items-center justify-center text-xs text-teal-700">SP</span>}
+                                    {p.planner && <span className="w-6 h-6 rounded bg-green-100 flex items-center justify-center text-xs text-green-700">P</span>}
+                                    {p.teams && <span className="w-6 h-6 rounded bg-indigo-100 flex items-center justify-center text-xs text-indigo-700">T</span>}
+                                </div>
+                            </div>
+                        ))}</div>
+                    )}
+                </Card>
             </div>
         );
-        const ProjectsView = ({ projects, onCreateProject, selectedProject, setSelectedProject }) => {
+
+        const ProjectsView = ({ projects, onRefresh, onSelect }) => {
             const [showModal, setShowModal] = useState(false);
-            const [formData, setFormData] = useState({ name: '', client: '', description: '' });
+            const [form, setForm] = useState({ name: '', client: '', clientSlug: '', description: '' });
             const [loading, setLoading] = useState(false);
-            const handleSubmit = async (e) => { e.preventDefault(); setLoading(true); await onCreateProject(formData); setFormData({ name: '', client: '', description: '' }); setShowModal(false); setLoading(false); };
-            if (selectedProject) return <ProjectDetail project={selectedProject} onBack={() => setSelectedProject(null)} />;
+
+            const create = async (e) => {
+                e.preventDefault();
+                setLoading(true);
+                try {
+                    await api.post('/api/projects', form);
+                    setForm({ name: '', client: '', clientSlug: '', description: '' });
+                    setShowModal(false);
+                    onRefresh();
+                } catch (err) { alert(err.error || 'Error'); }
+                setLoading(false);
+            };
+
             return (
                 <div>
-                    <div className="flex items-center justify-between mb-6"><h1 className="text-2xl font-bold text-gray-800">Proyectos</h1><button onClick={() => setShowModal(true)} className="flex items-center gap-2 bg-gradient-to-r from-pv-pink to-pv-purple hover:opacity-90 text-white px-4 py-2 rounded-lg text-sm font-medium"><Icon name="add" />Nuevo proyecto</button></div>
-                    {projects.length === 0 ? <Card className="p-12 text-center"><Icon name="folder_open" className="text-6xl text-gray-300 mb-4" /><h3 className="text-lg font-medium text-gray-800 mb-2">No hay proyectos</h3><p className="text-gray-500 mb-4">Crea tu primer proyecto</p><button onClick={() => setShowModal(true)} className="inline-flex items-center gap-2 bg-gradient-to-r from-pv-pink to-pv-purple text-white px-4 py-2 rounded-lg text-sm font-medium"><Icon name="add" />Crear proyecto</button></Card> : <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">{projects.map(p => (<Card key={p.id} className="p-5" onClick={() => setSelectedProject(p)}><div className="flex items-start justify-between mb-3"><div className="w-10 h-10 rounded-lg bg-gradient-to-br from-pv-pink to-pv-purple flex items-center justify-center"><Icon name="folder" className="text-white" /></div><span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">{p.status}</span></div><h3 className="font-semibold text-gray-800 mb-1">{p.name}</h3><p className="text-sm text-gray-500 mb-3">{p.client}</p><div className="flex items-center gap-4 mt-4 pt-4 border-t border-gray-100 text-xs text-gray-400"><span className="flex items-center gap-1"><Icon name="insert_drive_file" className="text-sm" /> 0</span><span className="flex items-center gap-1"><Icon name="task_alt" className="text-sm" /> 0</span></div></Card>))}</div>}
-                    {showModal && <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><Card className="p-6 max-w-md w-full mx-4"><div className="flex items-center justify-between mb-4"><h2 className="text-lg font-bold text-gray-800">Nuevo proyecto</h2><button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600"><Icon name="close" /></button></div><form onSubmit={handleSubmit}><div className="mb-4"><label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label><input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" required /></div><div className="mb-4"><label className="block text-sm font-medium text-gray-700 mb-1">Cliente</label><input type="text" value={formData.client} onChange={e => setFormData({...formData, client: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" required /></div><div className="mb-6"><label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label><textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" rows="3" /></div><div className="flex gap-3"><button type="button" onClick={() => setShowModal(false)} className="flex-1 py-2 border border-gray-300 rounded-lg text-sm">Cancelar</button><button type="submit" disabled={loading} className="flex-1 py-2 bg-gradient-to-r from-pv-pink to-pv-purple text-white rounded-lg text-sm disabled:opacity-50">{loading ? 'Creando...' : 'Crear'}</button></div></form></Card></div>}
+                    <div className="flex items-center justify-between mb-6">
+                        <h1 className="text-2xl font-bold text-gray-800">Proyectos</h1>
+                        <button onClick={() => setShowModal(true)} className="flex items-center gap-2 bg-gradient-to-r from-pv-pink to-pv-purple text-white px-4 py-2 rounded-lg text-sm font-medium"><Icon name="add" />Nuevo</button>
+                    </div>
+                    {projects.length === 0 ? (
+                        <Card className="p-12 text-center">
+                            <Icon name="folder_open" className="text-6xl text-gray-300 mb-4" />
+                            <p className="text-gray-500">No hay proyectos</p>
+                        </Card>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {projects.map(p => (
+                                <Card key={p.id} className="p-5" onClick={() => onSelect(p)}>
+                                    <div className="flex justify-between mb-3">
+                                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-pv-pink to-pv-purple flex items-center justify-center"><Icon name="folder" className="text-white" /></div>
+                                        <div className="flex gap-1">
+                                            {p.sharepoint && <span className="w-6 h-6 rounded bg-teal-100 flex items-center justify-center text-xs text-teal-700" title="SharePoint">SP</span>}
+                                            {p.planner && <span className="w-6 h-6 rounded bg-green-100 flex items-center justify-center text-xs text-green-700" title="Planner">P</span>}
+                                            {p.teams && <span className="w-6 h-6 rounded bg-indigo-100 flex items-center justify-center text-xs text-indigo-700" title="Teams">T</span>}
+                                        </div>
+                                    </div>
+                                    <h3 className="font-semibold text-gray-800">{p.name}</h3>
+                                    <p className="text-sm text-gray-500">{p.client}</p>
+                                </Card>
+                            ))}
+                        </div>
+                    )}
+                    {showModal && (
+                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                            <Card className="p-6 max-w-md w-full mx-4">
+                                <div className="flex justify-between mb-4"><h2 className="text-lg font-bold">Nuevo proyecto</h2><button onClick={() => setShowModal(false)}><Icon name="close" /></button></div>
+                                <form onSubmit={create}>
+                                    <div className="mb-3"><label className="block text-sm font-medium mb-1">Nombre</label><input value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm" required /></div>
+                                    <div className="mb-3"><label className="block text-sm font-medium mb-1">Cliente</label><input value={form.client} onChange={e => setForm({...form, client: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm" required /></div>
+                                    <div className="mb-3"><label className="block text-sm font-medium mb-1">Slug (del CRM)</label><input value={form.clientSlug} onChange={e => setForm({...form, clientSlug: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="ej: boluda, mercadona" /></div>
+                                    <div className="mb-4"><label className="block text-sm font-medium mb-1">Descripción</label><textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm" rows="2" /></div>
+                                    <div className="flex gap-3"><button type="button" onClick={() => setShowModal(false)} className="flex-1 py-2 border rounded-lg text-sm">Cancelar</button><button type="submit" disabled={loading} className="flex-1 py-2 bg-gradient-to-r from-pv-pink to-pv-purple text-white rounded-lg text-sm">{loading ? '...' : 'Crear'}</button></div>
+                                </form>
+                            </Card>
+                        </div>
+                    )}
                 </div>
             );
         };
-        const ProjectDetail = ({ project, onBack }) => (
-            <div>
-                <button onClick={onBack} className="flex items-center gap-2 text-gray-500 hover:text-gray-800 mb-4 text-sm"><Icon name="arrow_back" />Volver</button>
-                <div className="flex items-start justify-between mb-6"><div className="flex items-center gap-4"><div className="w-14 h-14 rounded-xl bg-gradient-to-br from-pv-pink to-pv-purple flex items-center justify-center"><Icon name="folder" className="text-white text-2xl" /></div><div><h1 className="text-2xl font-bold text-gray-800">{project.name}</h1><p className="text-gray-500">{project.client}</p></div></div><span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">{project.status}</span></div>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-2 space-y-6">
-                        <Card className="p-5"><div className="flex items-center justify-between mb-4"><h2 className="font-semibold text-gray-800 flex items-center gap-2"><Icon name="insert_drive_file" className="text-blue-600" />Documentos</h2></div><div className="text-center py-8 text-gray-400"><Icon name="cloud_upload" className="text-4xl mb-2" /><p className="text-sm">Conecta SharePoint</p></div></Card>
-                        <Card className="p-5"><div className="flex items-center justify-between mb-4"><h2 className="font-semibold text-gray-800 flex items-center gap-2"><Icon name="task_alt" className="text-green-600" />Tareas</h2></div><div className="text-center py-8 text-gray-400"><Icon name="checklist" className="text-4xl mb-2" /><p className="text-sm">Conecta Planner</p></div></Card>
+
+        const ProjectDetail = ({ project, onBack, onRefresh, msConfig }) => {
+            const [files, setFiles] = useState([]);
+            const [tasks, setTasks] = useState([]);
+            const [clients, setClients] = useState([]);
+            const [loading, setLoading] = useState({});
+            const [showSetup, setShowSetup] = useState(false);
+            const [showAccess, setShowAccess] = useState(false);
+            const [accessForm, setAccessForm] = useState({ email: '', name: '' });
+
+            useEffect(() => {
+                if (project.sharepoint) api.get(`/api/projects/${project.id}/files`).then(setFiles).catch(() => {});
+                if (project.planner) api.get(`/api/projects/${project.id}/tasks`).then(setTasks).catch(() => {});
+                api.get(`/api/projects/${project.id}/client-access`).then(setClients).catch(() => {});
+            }, [project]);
+
+            const setupIntegration = async (type) => {
+                setLoading(l => ({...l, [type]: true}));
+                try {
+                    const body = type === 'sharepoint' ? { siteId: msConfig.siteId } : type === 'planner' ? { groupId: msConfig.groupId } : { teamId: msConfig.teamId };
+                    await api.post(`/api/projects/${project.id}/${type}`, body);
+                    onRefresh();
+                } catch (err) { alert(err.error || `Error configurando ${type}`); }
+                setLoading(l => ({...l, [type]: false}));
+            };
+
+            const setupAll = async () => {
+                setLoading(l => ({...l, all: true}));
+                try {
+                    await api.post(`/api/projects/${project.id}/setup-all`, { siteId: msConfig.siteId, groupId: msConfig.groupId, teamId: msConfig.teamId });
+                    onRefresh();
+                    setShowSetup(false);
+                } catch (err) { alert(err.error || 'Error'); }
+                setLoading(l => ({...l, all: false}));
+            };
+
+            const createAccess = async () => {
+                try {
+                    const res = await api.post(`/api/projects/${project.id}/client-access`, accessForm);
+                    alert(`URL para el cliente:\n${res.url}`);
+                    navigator.clipboard.writeText(res.url);
+                    setAccessForm({ email: '', name: '' });
+                    setShowAccess(false);
+                    api.get(`/api/projects/${project.id}/client-access`).then(setClients);
+                } catch (err) { alert(err.error || 'Error'); }
+            };
+
+            const hasAllIntegrations = project.sharepoint && project.planner && project.teams;
+
+            return (
+                <div>
+                    <button onClick={onBack} className="flex items-center gap-2 text-gray-500 hover:text-gray-800 mb-4 text-sm"><Icon name="arrow_back" />Volver</button>
+                    <div className="flex items-start justify-between mb-6">
+                        <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-pv-pink to-pv-purple flex items-center justify-center"><Icon name="folder" className="text-white text-2xl" /></div>
+                            <div>
+                                <h1 className="text-2xl font-bold text-gray-800">{project.name}</h1>
+                                <p className="text-gray-500">{project.client} · {project.slug}</p>
+                            </div>
+                        </div>
+                        <div className="flex gap-2">
+                            {!hasAllIntegrations && <button onClick={() => setShowSetup(true)} className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm"><Icon name="settings" />Configurar M365</button>}
+                            <button onClick={() => setShowAccess(true)} className="flex items-center gap-2 px-3 py-2 border rounded-lg text-sm"><Icon name="person_add" />Dar acceso</button>
+                        </div>
                     </div>
-                    <div className="space-y-6">
-                        <Card className="p-5"><h2 className="font-semibold text-gray-800 mb-4">Info</h2><div className="space-y-3 text-sm"><div className="flex justify-between"><span className="text-gray-500">Creado</span><span>{new Date(project.createdAt).toLocaleDateString('es-ES')}</span></div><div className="flex justify-between"><span className="text-gray-500">Por</span><span>{project.createdBy || '—'}</span></div></div></Card>
-                        <Card className="p-5"><h2 className="font-semibold text-gray-800 mb-4">Acciones</h2><div className="space-y-2"><button className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-[#036C70] text-white text-sm"><span className="font-bold">SP</span> SharePoint</button><button className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-[#31752F] text-white text-sm"><span className="font-bold">P</span> Planner</button><button className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-[#5059C9] text-white text-sm"><span className="font-bold">T</span> Teams</button></div></Card>
+
+                    <div className="flex gap-2 mb-6">
+                        {project.sharepoint ? <span className="flex items-center gap-1 px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-sm"><Icon name="check" className="text-sm" />SharePoint</span> : <span className="px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-sm">SharePoint</span>}
+                        {project.planner ? <span className="flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm"><Icon name="check" className="text-sm" />Planner</span> : <span className="px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-sm">Planner</span>}
+                        {project.teams ? <span className="flex items-center gap-1 px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm"><Icon name="check" className="text-sm" />Teams</span> : <span className="px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-sm">Teams</span>}
                     </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="lg:col-span-2 space-y-6">
+                            <Card className="p-5">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h2 className="font-semibold flex items-center gap-2"><Icon name="insert_drive_file" className="text-teal-600" />Documentos</h2>
+                                    {project.sharepoint && <a href={project.sharepoint.folderUrl} target="_blank" className="text-sm text-blue-600 hover:underline">Abrir en SharePoint →</a>}
+                                </div>
+                                {!project.sharepoint ? <p className="text-gray-400 text-center py-6">Configura SharePoint para ver documentos</p> : files.length === 0 ? <p className="text-gray-400 text-center py-6">Sin documentos</p> : (
+                                    <div className="space-y-2">{files.map(f => (
+                                        <div key={f.id} className="flex items-center gap-3 p-2 rounded hover:bg-gray-50">
+                                            <Icon name={f.folder ? 'folder' : 'description'} className="text-gray-400" />
+                                            <span className="flex-1 text-sm">{f.name}</span>
+                                            {f.size && <span className="text-xs text-gray-400">{(f.size/1024).toFixed(0)} KB</span>}
+                                        </div>
+                                    ))}</div>
+                                )}
+                            </Card>
+
+                            <Card className="p-5">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h2 className="font-semibold flex items-center gap-2"><Icon name="task_alt" className="text-green-600" />Tareas</h2>
+                                </div>
+                                {!project.planner ? <p className="text-gray-400 text-center py-6">Configura Planner para ver tareas</p> : tasks.length === 0 ? <p className="text-gray-400 text-center py-6">Sin tareas</p> : (
+                                    <div className="space-y-2">{tasks.map(t => (
+                                        <div key={t.id} className="flex items-center gap-3 p-2 rounded hover:bg-gray-50">
+                                            <Icon name={t.percentComplete === 100 ? 'check_circle' : 'radio_button_unchecked'} className={t.percentComplete === 100 ? 'text-green-500' : 'text-gray-300'} />
+                                            <span className="flex-1 text-sm">{t.title}</span>
+                                        </div>
+                                    ))}</div>
+                                )}
+                            </Card>
+                        </div>
+
+                        <div className="space-y-6">
+                            <Card className="p-5">
+                                <h2 className="font-semibold mb-4">Accesos de cliente</h2>
+                                {clients.length === 0 ? <p className="text-gray-400 text-sm">Sin accesos</p> : (
+                                    <div className="space-y-2">{clients.map((c, i) => (
+                                        <div key={i} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                            <div><div className="text-sm font-medium">{c.name}</div><div className="text-xs text-gray-500">{c.email}</div></div>
+                                            <button onClick={() => api.delete(`/api/projects/${project.id}/client-access/${c.token.split('...')[0]}`).then(() => api.get(`/api/projects/${project.id}/client-access`).then(setClients))} className="text-red-500 hover:text-red-700"><Icon name="delete" className="text-sm" /></button>
+                                        </div>
+                                    ))}</div>
+                                )}
+                            </Card>
+
+                            <Card className="p-5">
+                                <h2 className="font-semibold mb-4">Info</h2>
+                                <div className="space-y-2 text-sm">
+                                    <div className="flex justify-between"><span className="text-gray-500">Creado</span><span>{new Date(project.createdAt).toLocaleDateString('es-ES')}</span></div>
+                                    <div className="flex justify-between"><span className="text-gray-500">Por</span><span>{project.createdBy}</span></div>
+                                </div>
+                            </Card>
+                        </div>
+                    </div>
+
+                    {showSetup && (
+                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                            <Card className="p-6 max-w-lg w-full mx-4">
+                                <div className="flex justify-between mb-4"><h2 className="text-lg font-bold">Configurar Microsoft 365</h2><button onClick={() => setShowSetup(false)}><Icon name="close" /></button></div>
+                                <p className="text-sm text-gray-500 mb-4">Conecta SharePoint, Planner y Teams para este proyecto.</p>
+                                
+                                <div className="space-y-3 mb-6">
+                                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                        <div className="flex items-center gap-3"><div className="w-8 h-8 rounded bg-teal-600 flex items-center justify-center text-white text-xs font-bold">SP</div><span>SharePoint</span></div>
+                                        {project.sharepoint ? <span className="text-green-600 text-sm">✓ Conectado</span> : <button onClick={() => setupIntegration('sharepoint')} disabled={loading.sharepoint || !msConfig.siteId} className="px-3 py-1 bg-teal-600 text-white rounded text-sm disabled:opacity-50">{loading.sharepoint ? '...' : 'Conectar'}</button>}
+                                    </div>
+                                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                        <div className="flex items-center gap-3"><div className="w-8 h-8 rounded bg-green-600 flex items-center justify-center text-white text-xs font-bold">P</div><span>Planner</span></div>
+                                        {project.planner ? <span className="text-green-600 text-sm">✓ Conectado</span> : <button onClick={() => setupIntegration('planner')} disabled={loading.planner || !msConfig.groupId} className="px-3 py-1 bg-green-600 text-white rounded text-sm disabled:opacity-50">{loading.planner ? '...' : 'Conectar'}</button>}
+                                    </div>
+                                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                        <div className="flex items-center gap-3"><div className="w-8 h-8 rounded bg-indigo-600 flex items-center justify-center text-white text-xs font-bold">T</div><span>Teams</span></div>
+                                        {project.teams ? <span className="text-green-600 text-sm">✓ Conectado</span> : <button onClick={() => setupIntegration('teams')} disabled={loading.teams || !msConfig.teamId} className="px-3 py-1 bg-indigo-600 text-white rounded text-sm disabled:opacity-50">{loading.teams ? '...' : 'Conectar'}</button>}
+                                    </div>
+                                </div>
+
+                                {(!msConfig.siteId || !msConfig.groupId || !msConfig.teamId) && <p className="text-amber-600 text-sm mb-4">⚠️ Configura los IDs de Microsoft en Configuración</p>}
+                                
+                                <button onClick={setupAll} disabled={loading.all || hasAllIntegrations} className="w-full py-2 bg-gradient-to-r from-pv-pink to-pv-purple text-white rounded-lg disabled:opacity-50">{loading.all ? 'Configurando...' : 'Configurar todo'}</button>
+                            </Card>
+                        </div>
+                    )}
+
+                    {showAccess && (
+                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                            <Card className="p-6 max-w-md w-full mx-4">
+                                <div className="flex justify-between mb-4"><h2 className="text-lg font-bold">Dar acceso a cliente</h2><button onClick={() => setShowAccess(false)}><Icon name="close" /></button></div>
+                                <div className="mb-3"><label className="block text-sm font-medium mb-1">Email</label><input value={accessForm.email} onChange={e => setAccessForm({...accessForm, email: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm" type="email" required /></div>
+                                <div className="mb-4"><label className="block text-sm font-medium mb-1">Nombre</label><input value={accessForm.name} onChange={e => setAccessForm({...accessForm, name: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm" /></div>
+                                <button onClick={createAccess} disabled={!accessForm.email} className="w-full py-2 bg-gradient-to-r from-pv-pink to-pv-purple text-white rounded-lg disabled:opacity-50">Generar enlace</button>
+                                <p className="text-xs text-gray-500 mt-2">Se copiará automáticamente al portapapeles</p>
+                            </Card>
+                        </div>
+                    )}
                 </div>
+            );
+        };
+
+        const SettingsView = ({ msConfig, setMsConfig }) => {
+            const [teams, setTeams] = useState([]);
+            const [sites, setSites] = useState([]);
+            const [groups, setGroups] = useState([]);
+            const [loading, setLoading] = useState(false);
+
+            const load = async () => {
+                setLoading(true);
+                try {
+                    const [t, s, g] = await Promise.all([api.get('/api/teams'), api.get('/api/sharepoint/sites'), api.get('/api/groups')]);
+                    setTeams(t || []);
+                    setSites(s || []);
+                    setGroups(g || []);
+                } catch (e) { console.error(e); }
+                setLoading(false);
+            };
+
+            useEffect(() => { load(); }, []);
+
+            return (
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-800 mb-6">Configuración</h1>
+                    <Card className="p-5 mb-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="font-semibold">Microsoft 365</h2>
+                            <button onClick={load} disabled={loading} className="text-sm text-blue-600">{loading ? 'Cargando...' : 'Recargar'}</button>
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Sitio de SharePoint</label>
+                                <select value={msConfig.siteId} onChange={e => setMsConfig({...msConfig, siteId: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm">
+                                    <option value="">Seleccionar...</option>
+                                    {sites.map(s => <option key={s.id} value={s.id}>{s.displayName || s.name}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Grupo (para Planner)</label>
+                                <select value={msConfig.groupId} onChange={e => setMsConfig({...msConfig, groupId: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm">
+                                    <option value="">Seleccionar...</option>
+                                    {groups.map(g => <option key={g.id} value={g.id}>{g.displayName}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Equipo de Teams</label>
+                                <select value={msConfig.teamId} onChange={e => setMsConfig({...msConfig, teamId: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm">
+                                    <option value="">Seleccionar...</option>
+                                    {teams.map(t => <option key={t.id} value={t.id}>{t.displayName}</option>)}
+                                </select>
+                            </div>
+                        </div>
+                    </Card>
+                    <p className="text-sm text-gray-500">Estos valores se usan al configurar proyectos nuevos.</p>
+                </div>
+            );
+        };
+
+        const ProposalsView = () => (
+            <div>
+                <h1 className="text-2xl font-bold text-gray-800 mb-6">Propuestas</h1>
+                <Card className="p-8 text-center">
+                    <Icon name="description" className="text-6xl text-gray-300 mb-4" />
+                    <p className="text-gray-500 mb-4">Sistema de propuestas interactivas</p>
+                    <a href="https://propuestas.plainvanilla.ai/admin/" target="_blank" className="inline-flex items-center gap-2 bg-gradient-to-r from-pv-pink to-pv-purple text-white px-6 py-2 rounded-lg text-sm font-medium"><Icon name="open_in_new" />Abrir</a>
+                </Card>
             </div>
         );
-        const ProposalsView = () => (<div><h1 className="text-2xl font-bold text-gray-800 mb-6">Propuestas</h1><Card className="p-8 text-center"><Icon name="description" className="text-6xl text-gray-300 mb-4" /><h3 className="text-lg font-medium text-gray-800 mb-2">Sistema de Propuestas</h3><p className="text-gray-500 mb-6">Gestiona tus propuestas interactivas</p><a href="https://propuestas.plainvanilla.ai/admin/" target="_blank" className="inline-flex items-center gap-2 bg-gradient-to-r from-pv-pink to-pv-purple text-white px-6 py-2 rounded-lg text-sm font-medium"><Icon name="open_in_new" />Abrir</a></Card></div>);
-        const MicrosoftView = ({ msData, onRefresh }) => {
-            const [loading, setLoading] = useState(false);
-            const testConnection = async (endpoint, label) => { setLoading(true); try { const res = await fetch(endpoint); const data = await res.json(); alert(`${label}: ${res.ok ? 'OK ✓' : 'Error'}\n${JSON.stringify(data, null, 2)}`); if (endpoint === '/api/teams' && Array.isArray(data)) onRefresh(); } catch (e) { alert(e.message); } setLoading(false); };
-            return (
-                <div>
-                    <div className="flex items-center justify-between mb-6"><h1 className="text-2xl font-bold text-gray-800">Microsoft 365</h1><button onClick={onRefresh} className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800"><Icon name="refresh" />Actualizar</button></div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                        <Card className="p-5"><div className="flex items-center gap-3 mb-4"><div className="w-10 h-10 rounded-lg bg-[#036C70] flex items-center justify-center text-white font-bold">SP</div><div><div className="font-semibold">SharePoint</div><div className="text-xs text-gray-500">Documentos</div></div></div><button onClick={() => testConnection('/api/sharepoint/root', 'SharePoint')} disabled={loading} className="w-full py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50">Probar</button></Card>
-                        <Card className="p-5"><div className="flex items-center gap-3 mb-4"><div className="w-10 h-10 rounded-lg bg-[#5059C9] flex items-center justify-center text-white font-bold">T</div><div><div className="font-semibold">Teams</div><div className="text-xs text-gray-500">Comunicación</div></div></div><button onClick={() => testConnection('/api/teams', 'Teams')} disabled={loading} className="w-full py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50">Probar</button></Card>
-                        <Card className="p-5"><div className="flex items-center gap-3 mb-4"><div className="w-10 h-10 rounded-lg bg-[#31752F] flex items-center justify-center text-white font-bold">P</div><div><div className="font-semibold">Planner</div><div className="text-xs text-gray-500">Tareas</div></div></div><button disabled className="w-full py-2 border border-gray-200 rounded-lg text-sm text-gray-400">Próximamente</button></Card>
-                    </div>
-                    <Card className="p-5"><h2 className="font-semibold text-gray-800 mb-4">Equipos de Teams</h2>{msData.teams?.length > 0 ? <div className="space-y-2">{msData.teams.map(t => (<div key={t.id} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50"><div className="w-8 h-8 rounded bg-[#5059C9] flex items-center justify-center text-white text-xs font-bold">{t.displayName?.charAt(0)}</div><div><div className="font-medium text-sm">{t.displayName}</div><div className="text-xs text-gray-500">{t.description || ''}</div></div></div>))}</div> : <div className="text-center py-6 text-gray-400"><Icon name="groups" className="text-4xl mb-2" /><p className="text-sm">Pulsa "Probar" en Teams</p></div>}</Card>
-                </div>
-            );
-        };
+
         function App() {
             const [user, setUser] = useState(null);
             const [loading, setLoading] = useState(true);
-            const [currentView, setCurrentView] = useState('dashboard');
+            const [view, setView] = useState('dashboard');
             const [projects, setProjects] = useState([]);
-            const [selectedProject, setSelectedProject] = useState(null);
-            const [msData, setMsData] = useState({ teams: [] });
-            useEffect(() => { fetch('/api/me').then(r => r.ok ? r.json() : Promise.reject()).then(d => { setUser(d); loadProjects(); }).catch(() => setUser(null)).finally(() => setLoading(false)); }, []);
-            const loadProjects = () => { fetch('/api/projects').then(r => r.json()).then(setProjects).catch(console.error); };
-            const handleCreateProject = async (data) => { const res = await fetch('/api/projects', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }); if (res.ok) loadProjects(); };
-            const loadMsData = async () => { try { const teams = await fetch('/api/teams').then(r => r.json()); setMsData({ teams: Array.isArray(teams) ? teams : [] }); } catch (e) {} };
+            const [selected, setSelected] = useState(null);
+            const [msConfig, setMsConfig] = useState({ siteId: '', groupId: '', teamId: '' });
+
+            useEffect(() => {
+                api.get('/api/me').then(u => { setUser(u); loadProjects(); }).catch(() => setUser(null)).finally(() => setLoading(false));
+            }, []);
+
+            const loadProjects = () => api.get('/api/projects').then(setProjects);
+
             if (loading) return <div className="min-h-screen flex items-center justify-center"><Logo className="w-16 h-16 animate-pulse" /></div>;
             if (!user) return <LoginScreen />;
+
             return (
                 <div className="min-h-screen flex">
-                    <Sidebar currentView={currentView} setCurrentView={(v) => { setCurrentView(v); setSelectedProject(null); }} user={user} onLogout={() => window.location.href = '/auth/logout'} />
-                    <main className="flex-1 p-6 overflow-auto bg-gray-50">
-                        {currentView === 'dashboard' && <DashboardView projects={projects} msStatus={msData.teams?.length > 0} />}
-                        {currentView === 'projects' && <ProjectsView projects={projects} onCreateProject={handleCreateProject} selectedProject={selectedProject} setSelectedProject={setSelectedProject} />}
-                        {currentView === 'proposals' && <ProposalsView />}
-                        {currentView === 'microsoft' && <MicrosoftView msData={msData} onRefresh={loadMsData} />}
+                    <Sidebar currentView={view} setCurrentView={v => { setView(v); setSelected(null); }} user={user} onLogout={() => location.href = '/auth/logout'} />
+                    <main className="flex-1 p-6 overflow-auto">
+                        {view === 'dashboard' && <DashboardView projects={projects} />}
+                        {view === 'projects' && !selected && <ProjectsView projects={projects} onRefresh={loadProjects} onSelect={setSelected} />}
+                        {view === 'projects' && selected && <ProjectDetail project={selected} onBack={() => setSelected(null)} onRefresh={() => { loadProjects(); api.get(`/api/projects/${selected.id}`).then(setSelected); }} msConfig={msConfig} />}
+                        {view === 'proposals' && <ProposalsView />}
+                        {view === 'settings' && <SettingsView msConfig={msConfig} setMsConfig={setMsConfig} />}
                     </main>
                 </div>
             );
         }
+
         ReactDOM.render(<App />, document.getElementById('root'));
     </script>
 </body>
