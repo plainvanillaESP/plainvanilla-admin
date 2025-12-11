@@ -214,10 +214,10 @@ async function updateTask(taskId, updates) {
   if (updates.dueDate !== undefined) { fields.push(`due_date = $${i}`); values.push(updates.dueDate); i++; }
   if (updates.phaseId !== undefined) { fields.push(`phase_id = $${i}`); values.push(updates.phaseId); i++; }
   if (updates.visibility !== undefined) { fields.push(`visibility = $${i}`); values.push(updates.visibility); i++; }
-  if (updates.assignedToType !== undefined) { fields.push(`assigned_to_type = ${i}`); values.push(updates.assignedToType); i++; }
-  if (updates.assignedToEmail !== undefined) { fields.push(`assigned_to_email = ${i}`); values.push(updates.assignedToEmail); i++; }
-  if (updates.assignedToName !== undefined) { fields.push(`assigned_to_name = ${i}`); values.push(updates.assignedToName); i++; }
-  if (updates.assignedToPhoto !== undefined) { fields.push(`assigned_to_photo = ${i}`); values.push(updates.assignedToPhoto); i++; }
+  if (updates.assignedToType !== undefined) { fields.push(`assigned_to_type = $${i}`); values.push(updates.assignedToType); i++; }
+  if (updates.assignedToEmail !== undefined) { fields.push(`assigned_to_email = $${i}`); values.push(updates.assignedToEmail); i++; }
+  if (updates.assignedToName !== undefined) { fields.push(`assigned_to_name = $${i}`); values.push(updates.assignedToName); i++; }
+  if (updates.assignedToPhoto !== undefined) { fields.push(`assigned_to_photo = $${i}`); values.push(updates.assignedToPhoto); i++; }
   if (updates.priority !== undefined) { fields.push(`priority = $${i}`); values.push(updates.priority); i++; }
   if (updates.status !== undefined) { fields.push(`status = $${i}`); values.push(updates.status); i++; }
   if (updates.plannerTaskId !== undefined) { fields.push(`planner_task_id = $${i}`); values.push(updates.plannerTaskId); i++; }
