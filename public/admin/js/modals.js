@@ -549,7 +549,7 @@ const TaskModal = ({ isOpen, onClose, task, projectId, phases, onSave }) => {
   const [form, setForm] = useState({
     title: '', description: '', dueDate: '', phaseId: '',
     visibility: 'public', assignedToType: '', assignedToId: '', 
-    assignedToEmail: '', assignedToName: '',
+    assignedToEmail: '', assignedToName: '', assignedToPhoto: '',
     priority: 'medium', status: 'pending'
   });
   const [loading, setLoading] = useState(false);
@@ -569,8 +569,9 @@ const TaskModal = ({ isOpen, onClose, task, projectId, phases, onSave }) => {
         visibility: task.visibility || 'public',
         assignedToType: task.assignedToType || '',
         assignedToId: task.assignedToId || '',
-        assignedToEmail: task.assignedToEmail || '',
-        assignedToName: task.assignedToName || '',
+        assignedToEmail: task.assignedToEmail || task.assignedTo?.email || '',
+        assignedToName: task.assignedToName || task.assignedTo?.name || '',
+        assignedToPhoto: task.assignedToPhoto || task.assignedTo?.photo || '',
         priority: task.priority || 'medium',
         status: task.status || 'pending'
       });
@@ -578,7 +579,7 @@ const TaskModal = ({ isOpen, onClose, task, projectId, phases, onSave }) => {
       setForm({
         title: '', description: '', dueDate: '', phaseId: phases[0]?.id || '',
         visibility: 'public', assignedToType: '', assignedToId: '',
-        assignedToEmail: '', assignedToName: '',
+        assignedToEmail: '', assignedToName: '', assignedToPhoto: '',
         priority: 'medium', status: 'pending'
       });
     }
@@ -620,7 +621,8 @@ const TaskModal = ({ isOpen, onClose, task, projectId, phases, onSave }) => {
       assignedToType: person.type || 'client',
       assignedToId: person.id || person.user_id || '',
       assignedToEmail: person.email,
-      assignedToName: person.name || person.email
+      assignedToName: person.name || person.email,
+      assignedToPhoto: person.photo || ''
     });
   };
 
@@ -630,7 +632,8 @@ const TaskModal = ({ isOpen, onClose, task, projectId, phases, onSave }) => {
       assignedToType: '',
       assignedToId: '',
       assignedToEmail: '',
-      assignedToName: ''
+      assignedToName: '',
+      assignedToPhoto: ''
     });
   };
 
