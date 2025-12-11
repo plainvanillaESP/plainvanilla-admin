@@ -60,19 +60,23 @@ const PhaseModal = ({ isOpen, onClose, phase, projectId, phases, onSave }) => {
     setForm(newForm);
   };
 
-  const handleSave = async () => {
-    if (!form.name) {
-      toast.error('El nombre es requerido');
+const handleSave = async () => {
+    if (!form.title) {
+      toast.error('El titulo es requerido');
       return;
     }
     
+    const payload = { ...form };
+    if (payload.dueDate === '') payload.dueDate = null;
+    if (payload.phaseId === '') payload.phaseId = null;
+    
     setLoading(true);
     try {
-      if (phase) {
-        await api.put(`/api/projects/${projectId}/phases/${phase.id}`, form);
+      if (task) {
+        await api.put(`/api/projects/${projectId}/tasks/${task.id}`, payload);
         toast.success('Fase actualizada');
       } else {
-        await api.post(`/api/projects/${projectId}/phases`, form);
+        await api.post(`/api/projects/${projectId}/phases`, payload);
         toast.success('Fase creada');
       }
       onClose();
@@ -85,7 +89,7 @@ const PhaseModal = ({ isOpen, onClose, phase, projectId, phases, onSave }) => {
 
   const handleDelete = async () => {
     if (!confirm('Eliminar esta fase?')) return;
-    
+   
     setLoading(true);
     try {
       await api.delete(`/api/projects/${projectId}/phases/${phase.id}`);
@@ -527,6 +531,9 @@ const TaskModal = ({ isOpen, onClose, task, projectId, phases, onSave }) => {
   });
   const [loading, setLoading] = useState(false);
   const [projectMembers, setProjectMembers] = useState([]);
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [assignSearch, setAssignSearch] = useState('');
+  const [showAssignDropdown, setShowAssignDropdown] = useState(false);
   const toast = useToast();
 
   useEffect(() => {
@@ -566,6 +573,17 @@ const TaskModal = ({ isOpen, onClose, task, projectId, phases, onSave }) => {
       setProjectMembers(clients || []);
     } catch (e) {
       console.log('No project members');
+    }
+    // Cargar equipo Plain Vanilla
+    try {
+      const contacts = await api.get('/api/contacts/search?q=plainvanilla');
+      const pvTeam = (contacts || []).filter(c => c.email && c.email.includes('@plainvanilla.ai'));
+      setTeamMembers(pvTeam);
+    } catch (e) {
+      // Fallback hardcoded
+      setTeamMembers([
+        { name: 'Equipo Plain Vanilla', email: 'team@plainvanilla.ai' }
+      ]);
     }
   };
 
@@ -627,10 +645,6 @@ const TaskModal = ({ isOpen, onClose, task, projectId, phases, onSave }) => {
     setLoading(false);
   };
 
-  // Equipo Plain Vanilla hardcoded
-  const teamMembers = [
-    { id: 'pv1', name: 'Plain Vanilla', email: 'team@plainvanilla.ai', type: 'team' }
-  ];
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={task ? 'Editar tarea' : 'Nueva tarea'}>
@@ -690,7 +704,7 @@ const TaskModal = ({ isOpen, onClose, task, projectId, phases, onSave }) => {
           />
         </div>
         
-        {/* Assignment Section - Solo gente del proyecto */}
+                {/* Assignment Section - Con buscador */}
         <div>
           <label className="block text-sm font-medium text-apple-gray-500 mb-1.5">
             Asignar a
@@ -713,48 +727,63 @@ const TaskModal = ({ isOpen, onClose, task, projectId, phases, onSave }) => {
               </button>
             </div>
           ) : (
-            <div className="space-y-2">
-              {teamMembers.length > 0 && (
-                <div>
-                  <span className="text-xs text-apple-gray-400">Equipo Plain Vanilla:</span>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {teamMembers.map((m, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => handleAssign({ ...m, type: 'team' })}
-                        className="px-2 py-1 text-xs bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-md"
-                      >
-                        {m.name}
-                      </button>
-                    ))}
-                  </div>
+            <div className="relative">
+              <input
+                type="text"
+                value={assignSearch}
+                onChange={e => {
+                  setAssignSearch(e.target.value);
+                  setShowAssignDropdown(true);
+                }}
+                onFocus={() => setShowAssignDropdown(true)}
+                onBlur={() => setTimeout(() => setShowAssignDropdown(false), 200)}
+                placeholder="Buscar miembro del proyecto..."
+                autoComplete="off"
+                className="w-full px-3 py-2 text-sm bg-apple-gray-50 border border-apple-gray-200 rounded-lg focus:outline-none focus:bg-white focus:border-apple-blue"
+              />
+              {showAssignDropdown && (
+                <div className="absolute z-50 w-full mt-1 bg-white border border-apple-gray-200 rounded-lg shadow-lg max-h-48 overflow-auto">
+                  {[...teamMembers, ...projectMembers]
+                    .filter(m => {
+                      if (!assignSearch) return true;
+                      const q = assignSearch.toLowerCase();
+                      return (m.name || '').toLowerCase().includes(q) || (m.email || '').toLowerCase().includes(q);
+                    })
+                    .map((m, idx) => {
+                      const isTeam = m.email && m.email.includes('@plainvanilla.ai');
+                      return (
+                        <button
+                          key={idx}
+                          onMouseDown={() => {
+                            handleAssign({ ...m, type: isTeam ? 'team' : 'client' });
+                            setAssignSearch('');
+                            setShowAssignDropdown(false);
+                          }}
+                          className="w-full px-3 py-2 text-left hover:bg-apple-gray-50 flex items-center gap-2"
+                        >
+                          <div className="w-8 h-8 rounded-full bg-apple-gray-100 flex items-center justify-center">
+                            <Icon name="person" className="text-apple-gray-400 text-sm" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="text-sm text-apple-gray-600">{m.name || m.email}</div>
+                            <div className="text-xs text-apple-gray-400">{m.email}</div>
+                          </div>
+                          <span className={`text-xs ${isTeam ? 'text-purple-500' : 'text-blue-500'}`}>
+                            {isTeam ? 'Equipo PV' : 'Cliente'}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  {(teamMembers.length === 0 && projectMembers.length === 0) && (
+                    <div className="px-3 py-2 text-sm text-apple-gray-400">No hay miembros disponibles</div>
+                  )}
                 </div>
-              )}
-              
-              {projectMembers.length > 0 && (
-                <div>
-                  <span className="text-xs text-apple-gray-400">Clientes del proyecto:</span>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {projectMembers.map((m, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => handleAssign({ ...m, type: 'client' })}
-                        className="px-2 py-1 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-md"
-                      >
-                        {m.name || m.email}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-              {projectMembers.length === 0 && (
-                <p className="text-xs text-apple-gray-400">No hay clientes en el proyecto. Añade acceso de cliente primero.</p>
               )}
             </div>
           )}
         </div>
-        
+
+
         {task && (
           <Select
             label="Estado"

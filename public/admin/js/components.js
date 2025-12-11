@@ -150,7 +150,7 @@ const Modal = ({ isOpen, onClose, title, children, size = "default", footer }) =
         </div>
         
         {/* Body */}
-        <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
+        <div className="flex-1 overflow-visible px-6 py-5">{children}</div>
         
         {/* Footer */}
         {footer && (
