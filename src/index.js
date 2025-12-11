@@ -275,7 +275,25 @@ app.put('/api/projects/:id', requireAuth, async (req, res) => {
 
 app.delete('/api/projects/:id', requireAuth, async (req, res) => {
   try {
+    const project = await db.getProject(req.params.id);
+    if (!project) return res.status(404).json({ error: 'Proyecto no encontrado' });
+    
+    // Delete M365 resources if they exist
+    if (req.session.user?.accessToken) {
+      const groupId = project.planner?.groupId || project.teams?.teamId;
+      if (groupId) {
+        console.log("🗑️ Eliminando grupo M365: " + groupId);
+        try {
+          const result = await graph.deleteGroup(req.session.user.accessToken, groupId);
+          console.log("M365 delete result:", result);
+        } catch (m365Error) {
+          console.error("Error eliminando M365:", m365Error.message);
+        }
+      }
+    }
+    
     await db.deleteProject(req.params.id);
+    console.log("✅ Proyecto eliminado: " + project.name);
     res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: e.message });

@@ -678,7 +678,7 @@ async function setupFullM365Project(accessToken, projectName, clientName, projec
   try {
     const groupName = clientName ? "PV - " + clientName + " - " + projectName : "PV - " + projectName;
     const mailNickname = (clientName + projectName).toLowerCase().replace(/[^a-z0-9]/g, "").substring(0, 20);
-    const group = await createGroup(accessToken, groupName, mailNickname, projectDescription);
+    const group = await createGroup(accessToken, groupName, mailNickname, projectDescription || "Proyecto gestionado por Plain Vanilla");
     results.steps.group = { success: true, data: group };
     
     await new Promise(resolve => setTimeout(resolve, 5000));
@@ -725,6 +725,17 @@ async function setupFullM365Project(accessToken, projectName, clientName, projec
   return results;
 }
 
+
+async function deleteGroup(accessToken, groupId) {
+  const client = getClient(accessToken);
+  try {
+    await client.api("/groups/" + groupId).delete();
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
 module.exports = {
   getPhoto,
   getUserPhoto,
@@ -733,6 +744,7 @@ module.exports = {
   searchMailContacts,
   getClient,
   // M365 Auto Setup
+  deleteGroup,
   createTeamFromGroup,
   getGroupSite,
   addGroupMembers,

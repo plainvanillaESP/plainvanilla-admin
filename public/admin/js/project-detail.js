@@ -29,6 +29,11 @@ const ProjectDetailView = ({ projectId, onBack, onRefresh }) => {
   const [editingSession, setEditingSession] = useState(null);
   const [editingTask, setEditingTask] = useState(null);
   
+  // Delete project
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  
   const toast = useToast();
 
   const handleDeleteSession = async (session) => {
@@ -86,6 +91,22 @@ const ProjectDetailView = ({ projectId, onBack, onRefresh }) => {
       toast.error('Error al cargar');
     }
     setLoading(false);
+  };
+
+  const handleDeleteProject = async () => {
+    if (deleteConfirmText !== project.name) {
+      toast.error('El nombre no coincide');
+      return;
+    }
+    setDeleting(true);
+    try {
+      await api.delete(`/api/projects/${projectId}`);
+      toast.success('Proyecto eliminado');
+      onBack();
+    } catch (e) {
+      toast.error('Error al eliminar');
+    }
+    setDeleting(false);
   };
 
   useEffect(() => { loadProject(); }, [projectId]);
@@ -176,6 +197,13 @@ const ProjectDetailView = ({ projectId, onBack, onRefresh }) => {
             <Icon name="settings" className="text-base" />
             M365
           </Button>
+          <button 
+            onClick={() => setShowDeleteConfirm(true)} 
+            className="p-2 text-apple-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+            title="Eliminar proyecto"
+          >
+            <Icon name="delete" className="text-lg" />
+          </button>
           <Button variant="secondary" size="small" onClick={() => setShowClientAccessModal(true)}>
             <Icon name="person_add" className="text-base" />
             Acceso
