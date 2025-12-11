@@ -815,56 +815,74 @@ app.post('/api/projects/:id/planner', requireAuth, async (req, res) => {
 // ============================================
 
 app.get('/api/contacts/search', requireAuth, async (req, res) => {
-  const { q } = req.query;
-  if (!q || q.length < 2) return res.json([]);
-  
-  const token = req.session.user?.accessToken;
-  const results = new Map();
-  
-  const addContact = (name, email, source, id = null, photo = null) => {
-    if (!email) return;
-    const key = email.toLowerCase();
-    if (!results.has(key)) {
-      results.set(key, { name: name || email, email, source, id, photo });
+  try {
+    const query = (req.query.q || '').toLowerCase();
+    const projectId = req.query.projectId;
+    const results = [];
+    const seen = new Set();
+    
+    const addContact = async (name, email, source, userId = null) => {
+      if (!email || seen.has(email.toLowerCase())) return;
+      seen.add(email.toLowerCase());
+      
+      // Intentar obtener foto si tenemos userId
+      let photo = null;
+      if (userId && req.session.user?.accessToken) {
+        try {
+          photo = await graph.getUserPhoto(req.session.user.accessToken, userId);
+        } catch (e) {}
+      }
+      
+      results.push({ name: name || email, email, source, photo });
+    };
+    
+    // 1. Clientes con acceso al proyecto
+    if (projectId) {
+      const access = await db.getProjectAccess(projectId);
+      for (const a of access) {
+        await addContact(a.name, a.email, 'client');
+      }
     }
-  };
-  
-  try {
-    // Buscar en usuarios de la organización
-    const people = await graph.searchUsers(token, q);
     
-    // Obtener fotos en paralelo
-    const peopleWithPhotos = await Promise.all(
-      people.map(async (p) => {
+    const token = req.session.user.accessToken;
+    
+    // 2. People (usuarios de la organización)
+    try {
+      const people = await graph.searchUsers(token, query);
+      for (const p of people) {
         const email = p.mail || p.userPrincipalName;
-        let photo = null;
-        if (p.id) {
-          try {
-            photo = await graph.getUserPhoto(token, p.id);
-          } catch (e) {}
-        }
-        return { ...p, email, photo };
-      })
-    );
+        if (email) await addContact(p.displayName, email, 'people', p.id);
+      }
+    } catch (e) { console.error('People search error:', e.message); }
     
-    peopleWithPhotos.forEach(p => {
-      addContact(p.displayName, p.email, 'people', p.id, p.photo);
-    });
-  } catch (e) { 
-    console.error("People search error:", e.message); 
+    // 3. Contactos personales
+    try {
+      const users = await graph.getMyContacts(token, query);
+      for (const u of users) {
+        if (u.email) await addContact(u.name, u.email, 'directory', u.id);
+      }
+    } catch (e) { console.error('Directory search error:', e.message); }
+    
+    // 4. Contactos de emails recibidos/enviados
+    try {
+      const mailContacts = await graph.searchMailContacts(token, query);
+      for (const c of mailContacts) {
+        await addContact(c.name, c.email, 'mail');
+      }
+    } catch (e) { console.error("Mail contacts error:", e.message); }
+    
+    // Filtrar localmente por query
+    const filtered = query.length >= 2 
+      ? results.filter(c => 
+          c.name.toLowerCase().includes(query) || 
+          c.email.toLowerCase().includes(query)
+        )
+      : results;
+    
+    res.json(filtered.slice(0, 20));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
-  
-  try {
-    // Buscar en contactos personales
-    const contacts = await graph.getMyContacts(token, q);
-    contacts.forEach(c => {
-      addContact(c.name, c.email, 'contacts', c.id);
-    });
-  } catch (e) { 
-    console.error("Contacts error:", e.message); 
-  }
-  
-  res.json(Array.from(results.values()).slice(0, 10));
 });
 
 
