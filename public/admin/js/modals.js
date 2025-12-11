@@ -40,7 +40,7 @@ const PhaseModal = ({ isOpen, onClose, phase, projectId, phases, onSave }) => {
 
   const handleDateChange = (field, value) => {
     if (value && !validateDateNotTooOld(value)) {
-      setDateError('No se permiten fechas de mas de 1 ano en el pasado');
+      setDateError('No se permiten fechas de mas de 1 año en el pasado');
       return;
     }
     
@@ -60,23 +60,19 @@ const PhaseModal = ({ isOpen, onClose, phase, projectId, phases, onSave }) => {
     setForm(newForm);
   };
 
-const handleSave = async () => {
-    if (!form.title) {
+  const handleSave = async () => {
+    if (!form.name) {
       toast.error('El nombre es requerido');
       return;
     }
     
-    const payload = { ...form };
-    if (payload.dueDate === '') payload.dueDate = null;
-    if (payload.phaseId === '') payload.phaseId = null;
-    
     setLoading(true);
     try {
-      if (task) {
-        await api.put(`/api/projects/${projectId}/tasks/${task.id}`, payload);
+      if (phase) {
+        await api.put(`/api/projects/${projectId}/phases/${phase.id}`, form);
         toast.success('Fase actualizada');
       } else {
-        await api.post(`/api/projects/${projectId}/phases`, payload);
+        await api.post(`/api/projects/${projectId}/phases`, form);
         toast.success('Fase creada');
       }
       onClose();
@@ -88,8 +84,8 @@ const handleSave = async () => {
   };
 
   const handleDelete = async () => {
-    if (!confirm('Eliminar esta fase?')) return;
-   
+    if (!confirm('¿Eliminar esta fase?')) return;
+    
     setLoading(true);
     try {
       await api.delete(`/api/projects/${projectId}/phases/${phase.id}`);
@@ -114,7 +110,7 @@ const handleSave = async () => {
         />
         
         <Textarea
-          label="Descripcion"
+          label="Descripción"
           value={form.description}
           onChange={e => setForm({ ...form, description: e.target.value })}
           rows={2}
@@ -138,7 +134,7 @@ const handleSave = async () => {
         </div>
         
         {dateError && (
-          <div className="text-apple-red text-sm">{dateError}</div>
+          <p className="text-sm text-red-500">{dateError}</p>
         )}
         
         <div className="flex justify-between pt-4">
@@ -176,7 +172,6 @@ const SessionModal = ({ isOpen, onClose, session, projectId, phases, onSave }) =
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
-  const [notifyAttendees, setNotifyAttendees] = useState(false);
   
   const toast = useToast();
 
@@ -202,7 +197,6 @@ const SessionModal = ({ isOpen, onClose, session, projectId, phases, onSave }) =
     }
     setSearchQuery('');
     setSearchResults([]);
-    setNotifyAttendees(false);
   }, [session, isOpen, phases]);
 
   const handleSearch = async (query) => {
@@ -386,19 +380,6 @@ const SessionModal = ({ isOpen, onClose, session, projectId, phases, onSave }) =
             />
           )}
           
-          {/* Checkbox notificar cambios - solo al editar */}
-          {session && form.type === 'online' && attendees.length > 0 && (
-            <label className="flex items-center gap-2 cursor-pointer p-3 bg-blue-50 rounded-lg">
-              <input
-                type="checkbox"
-                checked={notifyAttendees}
-                onChange={e => setNotifyAttendees(e.target.checked)}
-                className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
-              />
-              <span className="text-sm text-gray-700">Notificar cambios a los asistentes</span>
-            </label>
-          )}
-
           <Select
             label="Fase"
             value={form.phaseId}
@@ -628,7 +609,7 @@ const TaskModal = ({ isOpen, onClose, task, projectId, phases, onSave }) => {
 
   const handleSave = async () => {
     if (!form.title) {
-      toast.error('El nombre es requerido');
+      toast.error('El titulo es requerido');
       return;
     }
     
