@@ -292,7 +292,7 @@ app.put('/api/projects/:id/phases/reorder', requireAuth, async (req, res) => {
     const { order } = req.body; // [{id, order}, {id, order}, ...]
     
     for (const item of order) {
-      await db.updatePhase(item.id, { order: item.order });
+      await db.pool.query('UPDATE phases SET sort_order = $1 WHERE id = $2', [item.order, item.id]);
     }
     
     res.json({ success: true });
@@ -306,7 +306,7 @@ app.put('/api/projects/:id/phases/reorder', requireAuth, async (req, res) => {
 app.put('/api/projects/:id/sessions/:sessionId/move', requireAuth, async (req, res) => {
   try {
     const { phaseId, order } = req.body;
-    await db.updateSession(req.params.sessionId, { phaseId: phaseId || null, order: order || 0 });
+    await db.pool.query('UPDATE sessions SET phase_id = $1, sort_order = $2 WHERE id = $3', [phaseId || null, order || 0, req.params.sessionId]);
     res.json({ success: true });
   } catch (e) {
     console.error('Error moving session:', e);
@@ -318,7 +318,7 @@ app.put('/api/projects/:id/sessions/:sessionId/move', requireAuth, async (req, r
 app.put('/api/projects/:id/tasks/:taskId/move', requireAuth, async (req, res) => {
   try {
     const { phaseId, order } = req.body;
-    await db.updateTask(req.params.taskId, { phaseId: phaseId || null, order: order || 0 });
+    await db.pool.query('UPDATE tasks SET phase_id = $1, sort_order = $2 WHERE id = $3', [phaseId || null, order || 0, req.params.taskId]);
     res.json({ success: true });
   } catch (e) {
     console.error('Error moving task:', e);
