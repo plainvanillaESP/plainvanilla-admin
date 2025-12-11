@@ -197,7 +197,7 @@ app.get('/api/projects/:id', requireAuth, async (req, res) => {
 
 app.post('/api/projects', requireAuth, async (req, res) => {
   try {
-    const { name, client, clientSlug, description, pricing } = req.body;
+    const { name, client, clientSlug, description, pricing, setupM365 } = req.body;
     if (!name || !client) return res.status(400).json({ error: 'Nombre y cliente requeridos' });
 
     const slug = clientSlug || client.toLowerCase()
@@ -210,8 +210,52 @@ app.post('/api/projects', requireAuth, async (req, res) => {
       createdBy: req.session.user.email
     });
 
-    console.log(`✅ Proyecto creado: ${name}`);
-    res.status(201).json(project);
+    console.log("✅ Proyecto creado: " + name);
+
+    // Setup M365 resources if requested
+    if (setupM365 && req.session.user?.accessToken) {
+      console.log("🔄 Configurando M365 para: " + name);
+      try {
+        const m365Result = await graph.setupFullM365Project(
+          req.session.user.accessToken,
+          name,
+          description || "",
+          ["hola@plainvanilla.ai"] // Equipo PV por defecto
+        );
+        
+        console.log("M365 Setup result:", JSON.stringify(m365Result, null, 2));
+        
+        if (m365Result.success) {
+          // Update project with M365 info
+          const updates = {};
+          
+          if (m365Result.steps.team?.success) {
+            updates.teams_team_id = m365Result.groupId;
+            updates.teams_channel_id = "General";
+          }
+          
+          if (m365Result.steps.sharepoint?.success) {
+            updates.sharepoint_site_id = m365Result.steps.sharepoint.data.id;
+            updates.sharepoint_folder_url = m365Result.steps.sharepoint.data.webUrl;
+          }
+          
+          if (m365Result.steps.planner?.success) {
+            updates.planner_group_id = m365Result.groupId;
+            updates.planner_plan_id = m365Result.steps.planner.data.id;
+          }
+          
+          if (Object.keys(updates).length > 0) {
+            await db.updateProject(project.id, updates);
+            console.log("✅ Proyecto actualizado con M365 info");
+          }
+        }
+      } catch (m365Error) {
+        console.error("Error en M365 setup:", m365Error.message);
+        // No fallar la creación del proyecto por error en M365
+      }
+    }
+
+    res.status(201).json(await db.getProject(project.id));
   } catch (error) {
     console.error('Error creando proyecto:', error);
     res.status(500).json({ error: error.message });

@@ -13,7 +13,7 @@ const { api, formatDate, formatCurrency, getProjectDates, calculateProjectRevenu
 
 const ProjectsView = ({ projects, onSelectProject, onRefresh }) => {
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ name: '', client: '', description: '' });
+  const [form, setForm] = useState({ name: '', client: '', description: '', setupM365: true });
   const [loading, setLoading] = useState(false);
   const toast = useToast();
 
@@ -31,7 +31,7 @@ const ProjectsView = ({ projects, onSelectProject, onRefresh }) => {
       });
       toast.success('Proyecto creado');
       setShowModal(false);
-      setForm({ name: '', client: '', description: '' });
+      setForm({ name: '', client: '', description: '', setupM365: true });
       onRefresh();
     } catch (e) {
       toast.error(e.error || 'Error al crear');
@@ -165,6 +165,25 @@ const ProjectsView = ({ projects, onSelectProject, onRefresh }) => {
             placeholder="Opcional..."
             rows={3}
           />
+          
+          <div className="flex items-center gap-3 p-4 bg-purple-50 rounded-xl">
+            <input
+              type="checkbox"
+              id="setupM365"
+              checked={form.setupM365}
+              onChange={e => setForm({ ...form, setupM365: e.target.checked })}
+              className="w-4 h-4 text-pv-purple rounded border-gray-300 focus:ring-pv-purple"
+            />
+            <label htmlFor="setupM365" className="flex-1 cursor-pointer">
+              <div className="font-medium text-sm text-apple-gray-600">Crear recursos Microsoft 365</div>
+              <div className="text-xs text-apple-gray-400">Grupo, Teams, SharePoint y Planner automáticos</div>
+            </label>
+            <div className="flex gap-1">
+              <window.TeamsIcon className="w-4 h-4 text-purple-600" />
+              <window.SharePointIcon className="w-4 h-4 text-teal-600" />
+              <window.PlannerIcon className="w-4 h-4 text-green-600" />
+            </div>
+          </div>
         </div>
       </Modal>
     </div>
