@@ -13,7 +13,7 @@ const { api, formatDate, formatCurrency, getProjectDates, calculateProjectRevenu
 
 const ProjectsView = ({ projects, onSelectProject, onRefresh }) => {
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ name: '', client: '', description: '', setupM365: true });
+  const [form, setForm] = useState({ name: '', client: '', description: '', basePrice: '', setupM365: true });
   const [loading, setLoading] = useState(false);
   const toast = useToast();
 
@@ -26,12 +26,16 @@ const ProjectsView = ({ projects, onSelectProject, onRefresh }) => {
     setLoading(true);
     try {
       await api.post('/api/projects', {
-        ...form,
-        clientSlug: generateSlug(form.client)
+        name: form.name,
+        client: form.client,
+        description: form.description,
+        clientSlug: generateSlug(form.client),
+        pricing: { basePrice: form.basePrice === '' ? 0 : parseFloat(form.basePrice), vatExempt: false, vatRate: 21 },
+        setupM365: form.setupM365
       });
       toast.success('Proyecto creado');
       setShowModal(false);
-      setForm({ name: '', client: '', description: '', setupM365: true });
+      setForm({ name: '', client: '', description: '', basePrice: '', setupM365: true });
       onRefresh();
     } catch (e) {
       toast.error(e.error || 'Error al crear');
@@ -165,6 +169,17 @@ const ProjectsView = ({ projects, onSelectProject, onRefresh }) => {
             placeholder="Opcional..."
             rows={3}
           />
+          
+          <div>
+            <label className="block text-sm font-medium text-apple-gray-500 mb-1.5">Presupuesto base (€)</label>
+            <input
+              type="number"
+              value={form.basePrice}
+              onChange={e => setForm({ ...form, basePrice: e.target.value })}
+              placeholder="Ej: 5000"
+              className="w-full px-3 py-2 text-sm bg-apple-gray-50 border border-apple-gray-200 rounded-lg focus:outline-none focus:border-apple-blue"
+            />
+          </div>
           
           <div className="flex items-center gap-3 p-4 bg-purple-50 rounded-xl">
             <input

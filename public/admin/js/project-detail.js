@@ -377,7 +377,8 @@ const BudgetCard = ({ project, onSave }) => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await api.put(`/api/projects/${project.id}`, { pricing, addOns });
+      const pricingToSend = { ...pricing, basePrice: pricing.basePrice === '' ? 0 : parseFloat(pricing.basePrice) };
+      await api.put(`/api/projects/${project.id}`, { pricing: pricingToSend, addOns });
       toast.success('Guardado');
       setEditing(false);
       onSave();
