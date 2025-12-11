@@ -28,6 +28,9 @@ const ProjectDetailView = ({ projectId, onBack, onRefresh }) => {
   const [editingPhase, setEditingPhase] = useState(null);
   const [editingSession, setEditingSession] = useState(null);
   const [editingTask, setEditingTask] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [sessionToDelete, setSessionToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   
   const toast = useToast();
 
@@ -316,6 +319,21 @@ const ProjectDetailView = ({ projectId, onBack, onRefresh }) => {
       )}
       {window.M365SetupModal && (
         <window.M365SetupModal isOpen={showM365Modal} onClose={() => setShowM365Modal(false)} project={project} onSave={loadProject} />
+      )}
+    
+      
+      {/* Confirm Delete Session Modal */}
+      {window.ConfirmModal && (
+        <window.ConfirmModal
+          isOpen={showDeleteConfirm}
+          onClose={() => { setShowDeleteConfirm(false); setSessionToDelete(null); }}
+          onConfirm={confirmDeleteSession}
+          title="Eliminar sesión"
+          message={`¿Estás seguro de eliminar la sesión "${sessionToDelete?.title}"? Se notificará a todos los asistentes de la cancelación.`}
+          confirmText="Eliminar"
+          confirmVariant="danger"
+          loading={deleting}
+        />
       )}
     </div>
   );

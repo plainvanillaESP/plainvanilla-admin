@@ -146,8 +146,10 @@ const TimelineView = ({ phases, sessions, tasks, onEditPhase, onEditSession, onD
                               </a>
                               <button
                                 onClick={() => {
-                                  navigator.clipboard.writeText(teamsUrl);
-                                  window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'success', message: 'Link copiado' }}));
+                                  navigator.clipboard.writeText(teamsUrl).then(() => {
+                                    if (window.showToast) window.showToast('Link copiado al portapapeles', 'success');
+                                  });
+                                }}));
                                 }}
                                 className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
                                 title="Copiar link"

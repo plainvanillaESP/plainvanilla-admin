@@ -449,6 +449,56 @@ app.put('/api/projects/:id/sessions/:sessionId', requireAuth, async (req, res) =
   }
 });
 
+
+// Función para enviar email de cancelación de sesión
+async function sendCancellationEmail(accessToken, attendees, sessionTitle, sessionDate, sessionTime, projectName) {
+  if (!attendees || attendees.length === 0) return;
+  
+  const { Client } = require('@microsoft/microsoft-graph-client');
+  const client = Client.init({ authProvider: (done) => done(null, accessToken) });
+  
+  for (const attendee of attendees) {
+    const email = typeof attendee === 'string' ? attendee : attendee.email;
+    if (!email) continue;
+    
+    try {
+      await client.api('/me/sendMail').post({
+        message: {
+          subject: `Sesión cancelada: ${sessionTitle}`,
+          body: {
+            contentType: 'HTML',
+            content: `
+              <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background: linear-gradient(135deg, #e6007e 0%, #8b37ed 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+                  <h1 style="color: #ffffff; margin: 0; font-size: 20px;">Sesión Cancelada</h1>
+                </div>
+                <div style="background: #ffffff; padding: 30px; border: 1px solid #eee; border-top: none; border-radius: 0 0 12px 12px;">
+                  <p style="color: #333; font-size: 15px; margin-bottom: 20px;">
+                    La siguiente sesión ha sido cancelada:
+                  </p>
+                  <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <p style="margin: 0 0 10px 0;"><strong>Proyecto:</strong> ${projectName}</p>
+                    <p style="margin: 0 0 10px 0;"><strong>Sesión:</strong> ${sessionTitle}</p>
+                    <p style="margin: 0;"><strong>Fecha prevista:</strong> ${sessionDate} a las ${sessionTime}</p>
+                  </div>
+                  <p style="color: #666; font-size: 14px;">
+                    Si tienes alguna pregunta, no dudes en contactarnos.
+                  </p>
+                </div>
+              </div>
+            `
+          },
+          toRecipients: [{ emailAddress: { address: email } }]
+        },
+        saveToSentItems: true
+      });
+      console.log(`[Cancellation] Email sent to ${email}`);
+    } catch (e) {
+      console.error(`[Cancellation] Failed to send to ${email}:`, e.message);
+    }
+  }
+}
+
 app.delete('/api/projects/:id/sessions/:sessionId', requireAuth, async (req, res) => {
   try {
     const session = await db.getSession(req.params.sessionId);
