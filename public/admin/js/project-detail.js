@@ -51,6 +51,24 @@ const ProjectDetailView = ({ projectId, onBack, onRefresh }) => {
     }
   };
 
+  const handleMoveSession = async (sessionId, newPhaseId, newIndex) => {
+    try {
+      await api.put(`/api/projects/${projectId}/sessions/${sessionId}/move`, { phaseId: newPhaseId, order: newIndex });
+      loadProject();
+    } catch (e) {
+      toast.error('Error al mover sesión');
+    }
+  };
+
+  const handleMoveTask = async (taskId, newPhaseId, newIndex) => {
+    try {
+      await api.put(`/api/projects/${projectId}/tasks/${taskId}/move`, { phaseId: newPhaseId, order: newIndex });
+      loadProject();
+    } catch (e) {
+      toast.error('Error al mover tarea');
+    }
+  };
+
   const loadProject = async () => {
     try {
       const data = await api.get(`/api/projects/${projectId}`);
@@ -200,6 +218,8 @@ const ProjectDetailView = ({ projectId, onBack, onRefresh }) => {
                   onEditSession={s => { setEditingSession(s); setShowSessionModal(true); }}
                   onDeleteSession={handleDeleteSession}
                   onReorderPhases={handleReorderPhases}
+                  onMoveSession={handleMoveSession}
+                  onMoveTask={handleMoveTask}
                 />
               )}
             </div>

@@ -262,6 +262,16 @@ app.post('/api/projects/:id/phases', requireAuth, async (req, res) => {
   }
 });
 
+app.put('/api/projects/:id/phases/reorder', requireAuth, async (req, res) => {
+  console.log('REORDER REQUEST:', JSON.stringify(req.body));
+  try {
+    const { order } = req.body;
+    console.log('Order array:', order);
+    
+    if (!order || !Array.isArray(order)) {
+      console.log('Invalid order data');
+      return res.status(400).json({ error: 'Invalid order data' });
+
 app.put('/api/projects/:id/phases/:phaseId', requireAuth, async (req, res) => {
   try {
     const phase = await db.updatePhase(req.params.phaseId, req.body);
@@ -287,17 +297,18 @@ app.put('/api/projects/:id/phases/:phaseId', requireAuth, async (req, res) => {
 });
 
 // Reorder phases
-app.put('/api/projects/:id/phases/reorder', requireAuth, async (req, res) => {
-  try {
-    const { order } = req.body; // [{id, order}, {id, order}, ...]
+
+    }
     
     for (const item of order) {
+      console.log('Updating phase:', item.id, 'to order:', item.order);
       await db.pool.query('UPDATE phases SET sort_order = $1 WHERE id = $2', [item.order, item.id]);
     }
     
+    console.log('Reorder success');
     res.json({ success: true });
   } catch (e) {
-    console.error('Error reordering phases:', e);
+    console.error('Error reordering phases:', e.message, e.stack);
     res.status(500).json({ error: e.message });
   }
 });

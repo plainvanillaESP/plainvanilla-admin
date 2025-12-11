@@ -16,7 +16,7 @@ const {
 // TIMELINE VIEW
 // ============================================
 
-const TimelineView = ({ phases, sessions, tasks, onEditPhase, onEditSession, onDeleteSession, onReorderPhases }) => {
+const TimelineView = ({ phases, sessions, tasks, onEditPhase, onEditSession, onDeleteSession, onReorderPhases, onMoveSession, onMoveTask }) => {
   const [expandedPhases, setExpandedPhases] = useState(new Set(phases.map(p => p.id)));
   const phasesContainerRef = useRef(null);
   
@@ -120,8 +120,8 @@ const TimelineView = ({ phases, sessions, tasks, onEditPhase, onEditSession, onD
             </div>
             
             {/* Phase Content */}
-            {isExpanded && (phaseSessions.length > 0 || phaseTasks.length > 0) && (
-              <div className="px-4 pb-4 space-y-2">
+            {isExpanded && (
+              <div className="px-4 pb-4 space-y-2 phase-items-container" data-phase-id={phase.id}>
                 {/* Sessions */}
                 {phaseSessions
                   .sort((a, b) => new Date(a.date) - new Date(b.date))
@@ -130,10 +130,15 @@ const TimelineView = ({ phases, sessions, tasks, onEditPhase, onEditSession, onD
                     const teamsUrl = s.teamsMeetingUrl || s.teamsLink || s.teams_meeting_url;
                     return (
                       <div 
-                        key={s.id} 
+                        key={s.id}
+                        data-item-id={s.id}
+                        data-item-type="session"
                         onClick={() => onEditSession(s)} 
                         className="bg-white/80 rounded-lg p-3 flex items-center gap-3 cursor-pointer hover:bg-white transition-colors"
                       >
+                        <div className="item-drag-handle cursor-grab hover:cursor-grabbing text-gray-300 hover:text-gray-500 -ml-1" onClick={e => e.stopPropagation()}>
+                          <Icon name="drag_indicator" className="text-base" />
+                        </div>
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                           status === 'done' ? 'bg-green-100' : 
                           status === 'doing' ? 'bg-amber-100' : 'bg-gray-100'
