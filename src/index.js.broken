@@ -284,26 +284,13 @@ app.put('/api/projects/:id/phases/reorder', requireAuth, async (req, res) => {
     if (!order || !Array.isArray(order)) {
       console.log('Invalid order data');
       return res.status(400).json({ error: 'Invalid order data' });
-    }
-    
-    for (const item of order) {
-      console.log('Updating phase:', item.id, 'to order:', item.order);
-      await db.pool.query('UPDATE phases SET sort_order = $1 WHERE id = $2', [item.order, item.id]);
-    }
-    
-    console.log('Reorder success');
-    res.json({ success: true });
-  } catch (e) {
-    console.error('Error reordering phases:', e.message, e.stack);
-    res.status(500).json({ error: e.message });
-  }
-});
 
 app.put('/api/projects/:id/phases/:phaseId', requireAuth, async (req, res) => {
   try {
     const phase = await db.updatePhase(req.params.phaseId, req.body);
     if (!phase) return res.status(404).json({ error: 'Fase no encontrada' });
 
+    // Sync to calendar
     if (req.session.user?.accessToken && phase.startDate && phase.endDate) {
       try {
         const project = await db.getProject(req.params.id);
@@ -318,6 +305,23 @@ app.put('/api/projects/:id/phases/:phaseId', requireAuth, async (req, res) => {
 
     res.json(phase);
   } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Reorder phases
+
+    }
+    
+    for (const item of order) {
+      console.log('Updating phase:', item.id, 'to order:', item.order);
+      await db.pool.query('UPDATE phases SET sort_order = $1 WHERE id = $2', [item.order, item.id]);
+    }
+    
+    console.log('Reorder success');
+    res.json({ success: true });
+  } catch (e) {
+    console.error('Error reordering phases:', e.message, e.stack);
     res.status(500).json({ error: e.message });
   }
 });

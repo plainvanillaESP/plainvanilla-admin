@@ -44,6 +44,7 @@ const TimelineView = ({ phases, sessions, tasks, onEditPhase, onEditSession, onD
   useEffect(() => {
     if (phasesContainerRef.current && window.Sortable && onReorderPhases) {
       const sortable = new window.Sortable(phasesContainerRef.current, {
+        group: { name: 'phases', pull: false, put: false },
         animation: 150,
         handle: '.phase-drag-handle',
         ghostClass: 'opacity-50',
@@ -122,7 +123,7 @@ const TimelineView = ({ phases, sessions, tasks, onEditPhase, onEditSession, onD
         const phaseTasks = tasks.filter(t => t.phaseId === phase.id);
         const progress = getPhaseProgress(phase.id, sessions, tasks);
         const isExpanded = expandedPhases.has(phase.id);
-        const phaseColorSet = window.getPhaseColors ? window.getPhaseColors(phase, i) : { bg: phaseColors[i % phaseColors.length], text: phaseTextColors[i % phaseTextColors.length] };
+        const phaseColorSet = getPhaseColorClasses(phase, i);
         const bgColor = phaseColorSet.bg;
         const textColor = phaseColorSet.text;
         

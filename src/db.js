@@ -125,8 +125,8 @@ async function updatePhase(phaseId, updates) {
   
   if (updates.name !== undefined) { fields.push(`name = $${i}`); values.push(updates.name); i++; }
   if (updates.description !== undefined) { fields.push(`description = $${i}`); values.push(updates.description); i++; }
-  if (updates.startDate !== undefined) { fields.push(`start_date = $${i}`); values.push(updates.startDate); i++; }
-  if (updates.endDate !== undefined) { fields.push(`end_date = $${i}`); values.push(updates.endDate); i++; }
+  if (updates.startDate !== undefined) { fields.push(`start_date = $${i}`); values.push(updates.startDate || null); i++; }
+  if (updates.endDate !== undefined) { fields.push(`end_date = $${i}`); values.push(updates.endDate || null); i++; }
   if (updates.status !== undefined) { fields.push(`status = $${i}`); values.push(updates.status); i++; }
   if (updates.order !== undefined) { fields.push(`sort_order = $${i}`); values.push(updates.order); i++; }
   if (updates.color !== undefined) { fields.push(`color = $${i}`); values.push(updates.color); i++; }
@@ -319,7 +319,7 @@ function formatPhase(row) {
     id: row.id, projectId: row.project_id, name: row.name, description: row.description,
     startDate: row.start_date ? row.start_date.toISOString().split('T')[0] : null,
     endDate: row.end_date ? row.end_date.toISOString().split('T')[0] : null,
-    status: row.status, order: row.sort_order, calendarEventId: row.calendar_event_id, createdAt: row.created_at
+    status: row.status, color: row.color, order: row.sort_order, calendarEventId: row.calendar_event_id, createdAt: row.created_at
   };
 }
 
