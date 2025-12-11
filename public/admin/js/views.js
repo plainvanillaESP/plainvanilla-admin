@@ -31,7 +31,7 @@ const TimelineView = ({ phases, sessions, tasks, onEditPhase, onEditSession }) =
 
   if (phases.length === 0) {
     return (
-      <div className="text-center py-12 text-gray-400">
+      <div className="text-center py-12 text-apple-gray-400">
         <Icon name="timeline" className="text-5xl mb-3" />
         <div>No hay fases definidas</div>
       </div>
@@ -42,6 +42,7 @@ const TimelineView = ({ phases, sessions, tasks, onEditPhase, onEditSession }) =
     <div className="space-y-4">
       {phases.map((phase, i) => {
         const phaseSessions = sessions.filter(s => s.phaseId === phase.id);
+        const phaseTasks = tasks.filter(t => t.phaseId === phase.id);
         const progress = getPhaseProgress(phase.id, sessions, tasks);
         const isExpanded = expandedPhases.has(phase.id);
         const bgColor = phaseColors[i % phaseColors.length];
@@ -96,13 +97,15 @@ const TimelineView = ({ phases, sessions, tasks, onEditPhase, onEditSession }) =
               </div>
             </div>
             
-            {/* Phase Sessions */}
-            {isExpanded && phaseSessions.length > 0 && (
+            {/* Phase Content */}
+            {isExpanded && (phaseSessions.length > 0 || phaseTasks.length > 0) && (
               <div className="px-4 pb-4 space-y-2">
+                {/* Sessions */}
                 {phaseSessions
                   .sort((a, b) => new Date(a.date) - new Date(b.date))
                   .map(s => {
                     const status = getSessionStatus(s);
+                    const teamsUrl = s.teamsMeetingUrl || s.teamsLink || s.teams_meeting_url;
                     return (
                       <div 
                         key={s.id} 
@@ -123,26 +126,63 @@ const TimelineView = ({ phases, sessions, tasks, onEditPhase, onEditSession }) =
                         </div>
                         
                         <div className="flex-1">
-                          <div className="font-medium text-gray-800">{s.title}</div>
-                          <div className="text-sm text-gray-400">
+                          <div className="font-medium text-apple-gray-600">{s.title}</div>
+                          <div className="text-sm text-apple-gray-400">
                             {formatDate(s.date)} {s.time}
                           </div>
                         </div>
                         
-                        {s.type === 'online' && s.teamsLink && (
+                        {s.type === 'online' && teamsUrl && (
                           <a 
-                            href={s.teamsLink} 
+                            href={teamsUrl} 
                             target="_blank" 
                             rel="noopener" 
                             onClick={e => e.stopPropagation()} 
-                            className="text-purple-600 hover:text-purple-800"
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg text-sm font-medium transition-colors"
                           >
-                            <window.TeamsIcon className="w-5 h-5" />
+                            <window.TeamsIcon className="w-4 h-4" />
+                            Unirse
                           </a>
                         )}
                       </div>
                     );
                   })}
+                
+                {/* Tasks */}
+                {phaseTasks.map(t => (
+                  <div 
+                    key={t.id} 
+                    className="bg-white/80 rounded-lg p-3 flex items-center gap-3"
+                  >
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                      t.status === 'completed' ? 'bg-green-100' : 
+                      t.status === 'in_progress' ? 'bg-amber-100' : 'bg-gray-100'
+                    }`}>
+                      <Icon 
+                        name="task" 
+                        className={`text-sm ${
+                          t.status === 'completed' ? 'text-green-600' : 
+                          t.status === 'in_progress' ? 'text-amber-600' : 'text-gray-400'
+                        }`} 
+                      />
+                    </div>
+                    
+                    <div className="flex-1">
+                      <div className={`font-medium ${t.status === 'completed' ? 'text-apple-gray-400 line-through' : 'text-apple-gray-600'}`}>
+                        {t.title}
+                      </div>
+                      {t.dueDate && (
+                        <div className="text-sm text-apple-gray-400">
+                          Vence: {formatDate(t.dueDate)}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {t.priority === 'high' && (
+                      <Badge color="red">Urgente</Badge>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -167,7 +207,6 @@ const KanbanView = ({ phases, sessions, tasks }) => {
     if (type === 'session') {
       return getSessionStatus(item);
     }
-    // Task
     if (item.status === 'completed') return 'done';
     if (item.status === 'in_progress') return 'doing';
     return 'todo';
@@ -176,7 +215,7 @@ const KanbanView = ({ phases, sessions, tasks }) => {
   return (
     <div className="grid grid-cols-3 gap-4">
       {columns.map(col => (
-        <div key={col.id} className="bg-gray-50 rounded-xl p-3">
+        <div key={col.id} className="bg-apple-gray-50 rounded-xl p-3">
           <div className={`flex items-center gap-2 mb-3 text-${col.color}-600`}>
             <Icon name={col.icon} />
             <span className="font-medium">{col.title}</span>
@@ -186,35 +225,51 @@ const KanbanView = ({ phases, sessions, tasks }) => {
             {/* Sessions */}
             {sessions
               .filter(s => getItemStatus(s, 'session') === col.id)
-              .map(s => (
-                <div key={s.id} className="bg-white p-3 rounded-lg shadow-sm border border-gray-100">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Icon 
-                      name={s.type === 'online' ? 'videocam' : 'place'} 
-                      className="text-sm text-blue-500" 
-                    />
-                    <span className="text-sm text-blue-500 uppercase font-medium">SesiÃ³n</span>
+              .map(s => {
+                const teamsUrl = s.teamsMeetingUrl || s.teamsLink || s.teams_meeting_url;
+                return (
+                  <div key={s.id} className="bg-white p-3 rounded-lg shadow-sm border border-apple-gray-100">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Icon 
+                        name={s.type === 'online' ? 'videocam' : 'place'} 
+                        className="text-sm text-blue-500" 
+                      />
+                      <span className="text-sm text-blue-500 uppercase font-medium">Sesion</span>
+                    </div>
+                    <div className="font-medium text-apple-gray-600 text-sm">{s.title}</div>
+                    <div className="text-sm text-apple-gray-400 mt-1">
+                      {formatDate(s.date)} {s.time}
+                    </div>
+                    {s.type === 'online' && teamsUrl && (
+                      <a 
+                        href={teamsUrl} 
+                        target="_blank" 
+                        rel="noopener" 
+                        className="mt-2 flex items-center gap-1 text-sm text-purple-600 hover:text-purple-800"
+                      >
+                        <window.TeamsIcon className="w-4 h-4" />
+                        Unirse a Teams
+                      </a>
+                    )}
                   </div>
-                  <div className="font-medium text-gray-800 text-sm">{s.title}</div>
-                  <div className="text-sm text-gray-400 mt-1">
-                    {formatDate(s.date)} {s.time}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             
             {/* Tasks */}
             {tasks
               .filter(t => getItemStatus(t, 'task') === col.id)
               .map(t => (
-                <div key={t.id} className="bg-white p-3 rounded-lg shadow-sm border border-gray-100">
+                <div key={t.id} className="bg-white p-3 rounded-lg shadow-sm border border-apple-gray-100">
                   <div className="flex items-center gap-2 mb-1">
                     <Icon name="task" className="text-sm text-purple-500" />
                     <span className="text-sm text-purple-500 uppercase font-medium">Tarea</span>
                     {t.priority === 'high' && <Badge color="red">!</Badge>}
                   </div>
-                  <div className="font-medium text-gray-800 text-sm">{t.title}</div>
+                  <div className="font-medium text-apple-gray-600 text-sm">{t.title}</div>
                   {t.dueDate && (
-                    <div className="text-sm text-gray-400 mt-1">{formatDate(t.dueDate)}</div>
+                    <div className="text-sm text-apple-gray-400 mt-1">
+                      {formatDate(t.dueDate)}
+                    </div>
                   )}
                 </div>
               ))}
@@ -234,49 +289,49 @@ const CalendarView = ({ phases, sessions }) => {
   
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
-  const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
-  const startDay = (firstDay.getDay() + 6) % 7; // Monday = 0
-  const daysInMonth = lastDay.getDate();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const startDay = new Date(year, month, 1).getDay();
   
-  const days = ['Lun', 'Mar', 'MiÃ©', 'Jue', 'Vie', 'SÃ¡b', 'Dom'];
-  const monthNames = [
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-  ];
+  const days = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
+  const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+                      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
   const getDayContent = (day) => {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return {
-      phases: phases.filter(p => p.startDate && p.endDate && dateStr >= p.startDate && dateStr <= p.endDate),
-      sessions: sessions.filter(s => s.date === dateStr)
-    };
+    
+    const dayPhases = phases.filter(p => 
+      p.startDate && p.endDate && dateStr >= p.startDate && dateStr <= p.endDate
+    );
+    
+    const daySessions = sessions.filter(s => s.date === dateStr);
+    
+    return { phases: dayPhases, sessions: daySessions };
   };
 
   return (
     <div>
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
           <button 
             onClick={() => setCurrentMonth(new Date(year, month - 1))} 
-            className="p-1 hover:bg-gray-100 rounded"
+            className="p-1 hover:bg-apple-gray-100 rounded"
           >
             <Icon name="chevron_left" />
           </button>
-          <span className="font-semibold text-gray-800">
+          <span className="font-semibold text-apple-gray-600">
             {monthNames[month]} {year}
           </span>
           <button 
             onClick={() => setCurrentMonth(new Date(year, month + 1))} 
-            className="p-1 hover:bg-gray-100 rounded"
+            className="p-1 hover:bg-apple-gray-100 rounded"
           >
             <Icon name="chevron_right" />
           </button>
         </div>
         <button 
           onClick={() => setCurrentMonth(new Date())} 
-          className="text-sm text-pv-purple hover:underline"
+          className="text-sm text-apple-blue hover:underline"
         >
           Hoy
         </button>
@@ -285,7 +340,7 @@ const CalendarView = ({ phases, sessions }) => {
       {/* Day Headers */}
       <div className="grid grid-cols-7 gap-1 mb-2">
         {days.map(d => (
-          <div key={d} className="text-center text-sm text-gray-400 font-medium py-2">
+          <div key={d} className="text-center text-sm text-apple-gray-400 font-medium py-2">
             {d}
           </div>
         ))}
@@ -309,9 +364,9 @@ const CalendarView = ({ phases, sessions }) => {
               key={day} 
               className={`aspect-square p-1 rounded-lg ${
                 isToday ? 'ring-2 ring-pv-purple' : ''
-              } hover:bg-gray-50 cursor-pointer`}
+              } hover:bg-apple-gray-50 cursor-pointer`}
             >
-              <div className="text-sm text-gray-600 mb-1">{day}</div>
+              <div className="text-sm text-apple-gray-600 mb-1">{day}</div>
               <div className="space-y-0.5">
                 {dayPhases.slice(0, 2).map((p, j) => (
                   <div 
@@ -362,30 +417,26 @@ const GanttView = ({ phases, sessions }) => {
     return () => resizeObserver.disconnect();
   }, []);
 
-  // Check if we have phases with dates
   const phasesWithDates = phases.filter(p => p.startDate && p.endDate);
   
   if (phasesWithDates.length === 0) {
     return (
-      <div className="text-center py-12 text-gray-400">
+      <div className="text-center py-12 text-apple-gray-400">
         <Icon name="bar_chart" className="text-5xl mb-3" />
         <div>No hay fases con fechas</div>
       </div>
     );
   }
 
-  // Calculate date range
   const allDates = phasesWithDates.flatMap(p => [p.startDate, p.endDate]).sort();
   const startDate = new Date(allDates[0]);
   const endDate = new Date(allDates[allDates.length - 1]);
   const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
   
-  // Calculate dimensions
   const labelWidth = 150;
   const chartWidth = containerWidth - labelWidth - 40;
   const dayWidth = chartWidth / totalDays;
   
-  // Today marker
   const today = new Date();
   const todayOffset = Math.ceil((today - startDate) / (1000 * 60 * 60 * 24));
 
@@ -404,7 +455,7 @@ const GanttView = ({ phases, sessions }) => {
       <div className="flex justify-end mb-2">
         <button 
           onClick={exportGantt}
-          className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+          className="flex items-center gap-1 text-sm text-apple-gray-500 hover:text-apple-gray-700"
         >
           <Icon name="download" className="text-sm" />
           Exportar PNG
@@ -413,11 +464,11 @@ const GanttView = ({ phases, sessions }) => {
       
       <div ref={containerRef} className="overflow-hidden bg-white p-4 rounded-lg">
         {/* Header */}
-        <div className="flex border-b border-gray-200 pb-2 mb-4">
-          <div style={{ width: labelWidth }} className="text-sm font-medium text-gray-500">
+        <div className="flex border-b border-apple-gray-200 pb-2 mb-4">
+          <div style={{ width: labelWidth }} className="text-sm font-medium text-apple-gray-500">
             Fase
           </div>
-          <div className="flex-1 flex justify-between text-sm text-gray-400">
+          <div className="flex-1 flex justify-between text-sm text-apple-gray-400">
             <span>{formatDate(allDates[0])}</span>
             <span>{formatDate(allDates[allDates.length - 1])}</span>
           </div>
@@ -428,7 +479,7 @@ const GanttView = ({ phases, sessions }) => {
           {/* Today line */}
           {todayOffset >= 0 && todayOffset <= totalDays && (
             <div 
-              className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-10" 
+              className="absolute top-0 bottom-0 w-0.5 bg-apple-red z-10" 
               style={{ left: labelWidth + (todayOffset * dayWidth) }} 
             />
           )}
@@ -447,7 +498,7 @@ const GanttView = ({ phases, sessions }) => {
               <div key={phase.id} className="flex items-center">
                 <div 
                   style={{ width: labelWidth }} 
-                  className="text-sm text-gray-700 truncate pr-4"
+                  className="text-sm text-apple-gray-600 truncate pr-4"
                 >
                   {phase.name}
                 </div>

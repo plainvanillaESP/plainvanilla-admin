@@ -41,7 +41,7 @@ const PhaseModal = ({ isOpen, onClose, phase, projectId, phases, onSave }) => {
 
   const handleDateChange = (field, value) => {
     if (value && !validateDateNotTooOld(value)) {
-      setDateError('No se permiten fechas de mÃ¡s de 1 aÃ±o en el pasado');
+      setDateError('No se permiten fechas de mas de 1 año en el pasado');
       return;
     }
     
@@ -85,7 +85,7 @@ const PhaseModal = ({ isOpen, onClose, phase, projectId, phases, onSave }) => {
   };
 
   const handleDelete = async () => {
-    if (!confirm('Â¿Eliminar esta fase?')) return;
+    if (!confirm('Eliminar esta fase?')) return;
     
     setLoading(true);
     try {
@@ -111,7 +111,7 @@ const PhaseModal = ({ isOpen, onClose, phase, projectId, phases, onSave }) => {
         />
         
         <Textarea
-          label="DescripciÃ³n"
+          label="Descripcion"
           value={form.description}
           onChange={e => setForm({ ...form, description: e.target.value })}
           rows={2}
@@ -135,7 +135,7 @@ const PhaseModal = ({ isOpen, onClose, phase, projectId, phases, onSave }) => {
         </div>
         
         {dateError && (
-          <div className="text-red-500 text-sm">{dateError}</div>
+          <div className="text-apple-red text-sm">{dateError}</div>
         )}
         
         <div className="flex justify-between pt-4">
@@ -157,17 +157,25 @@ const PhaseModal = ({ isOpen, onClose, phase, projectId, phases, onSave }) => {
 };
 
 // ============================================
-// SESSION MODAL
+// SESSION MODAL - Con busqueda de asistentes
 // ============================================
 
 const SessionModal = ({ isOpen, onClose, session, projectId, phases, onSave }) => {
   const [form, setForm] = useState({
     title: '', date: '', time: '10:00', duration: 60, 
-    type: 'online', location: '', phaseId: '', description: ''
+    type: 'online', location: '', phaseId: '', description: '',
+    attendees: []
   });
   const [loading, setLoading] = useState(false);
   const [showConflictPopup, setShowConflictPopup] = useState(false);
   const [conflict, setConflict] = useState(null);
+  
+  // Attendees search
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [projectMembers, setProjectMembers] = useState([]);
+  
   const toast = useToast();
 
   useEffect(() => {
@@ -180,15 +188,80 @@ const SessionModal = ({ isOpen, onClose, session, projectId, phases, onSave }) =
         type: session.type || 'online',
         location: session.location || '',
         phaseId: session.phaseId || '',
-        description: session.description || ''
+        description: session.description || '',
+        attendees: session.attendees || []
       });
     } else {
       setForm({
         title: '', date: '', time: '10:00', duration: 60,
-        type: 'online', location: '', phaseId: phases[0]?.id || '', description: ''
+        type: 'online', location: '', phaseId: phases[0]?.id || '', description: '',
+        attendees: []
       });
     }
+    setSearchQuery('');
+    setSearchResults([]);
   }, [session, isOpen, phases]);
+
+  // Load project members
+  useEffect(() => {
+    if (isOpen && projectId) {
+      loadProjectMembers();
+    }
+  }, [isOpen, projectId]);
+
+  const loadProjectMembers = async () => {
+    try {
+      const data = await api.get(`/api/projects/${projectId}/client-access`);
+      setProjectMembers(data || []);
+    } catch (e) {
+      console.log('No project members');
+    }
+  };
+
+  // Search attendees
+  const handleSearch = async (query) => {
+    setSearchQuery(query);
+    if (query.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    
+    setSearching(true);
+    try {
+      const results = await api.get(`/api/people/search?q=${encodeURIComponent(query)}`);
+      setSearchResults(results || []);
+    } catch (e) {
+      const filtered = projectMembers.filter(m => 
+        m.name?.toLowerCase().includes(query.toLowerCase()) ||
+        m.email?.toLowerCase().includes(query.toLowerCase())
+      );
+      setSearchResults(filtered);
+    }
+    setSearching(false);
+  };
+
+  const addAttendee = (person) => {
+    const exists = form.attendees.find(a => a.email === person.email);
+    if (!exists) {
+      setForm({
+        ...form,
+        attendees: [...form.attendees, {
+          email: person.email,
+          name: person.name || person.displayName || person.email,
+          type: person.type || 'external'
+        }]
+      });
+    }
+    setSearchQuery('');
+    setSearchResults([]);
+  };
+
+  const removeAttendee = (email) => {
+    setForm({
+      ...form,
+      attendees: form.attendees.filter(a => a.email !== email)
+    });
+  };
 
   const checkConflict = () => {
     if (!form.phaseId || !form.date) return null;
@@ -203,7 +276,7 @@ const SessionModal = ({ isOpen, onClose, session, projectId, phases, onSave }) =
 
   const handleSave = async (skipConflictCheck = false) => {
     if (!form.title || !form.date) {
-      toast.error('TÃ­tulo y fecha son requeridos');
+      toast.error('Titulo y fecha son requeridos');
       return;
     }
     
@@ -220,10 +293,10 @@ const SessionModal = ({ isOpen, onClose, session, projectId, phases, onSave }) =
     try {
       if (session) {
         await api.put(`/api/projects/${projectId}/sessions/${session.id}`, form);
-        toast.success('SesiÃ³n actualizada');
+        toast.success('Sesion actualizada');
       } else {
         await api.post(`/api/projects/${projectId}/sessions`, form);
-        toast.success('SesiÃ³n creada');
+        toast.success('Sesion creada');
       }
       onClose();
       onSave();
@@ -237,7 +310,6 @@ const SessionModal = ({ isOpen, onClose, session, projectId, phases, onSave }) =
     setShowConflictPopup(false);
     
     if (option === 'extend') {
-      // Extend phase range
       const phase = conflict.phase;
       const updates = {};
       if (form.date < phase.startDate) updates.startDate = form.date;
@@ -257,12 +329,12 @@ const SessionModal = ({ isOpen, onClose, session, projectId, phases, onSave }) =
   };
 
   const handleDelete = async () => {
-    if (!confirm('Â¿Eliminar esta sesiÃ³n?')) return;
+    if (!confirm('Eliminar esta sesion?')) return;
     
     setLoading(true);
     try {
       await api.delete(`/api/projects/${projectId}/sessions/${session.id}`);
-      toast.success('SesiÃ³n eliminada');
+      toast.success('Sesion eliminada');
       onClose();
       onSave();
     } catch (e) {
@@ -276,11 +348,12 @@ const SessionModal = ({ isOpen, onClose, session, projectId, phases, onSave }) =
       <Modal 
         isOpen={isOpen && !showConflictPopup} 
         onClose={onClose} 
-        title={session ? 'Editar sesiÃ³n' : 'Nueva sesiÃ³n'}
+        title={session ? 'Editar sesion' : 'Nueva sesion'}
+        size="large"
       >
         <div className="space-y-4">
           <Input
-            label="TÃ­tulo"
+            label="Titulo"
             required
             value={form.title}
             onChange={e => setForm({ ...form, title: e.target.value })}
@@ -306,7 +379,7 @@ const SessionModal = ({ isOpen, onClose, session, projectId, phases, onSave }) =
           
           <div className="grid grid-cols-2 gap-4">
             <Input
-              label="DuraciÃ³n (min)"
+              label="Duracion (min)"
               type="number"
               value={form.duration}
               onChange={e => setForm({ ...form, duration: parseInt(e.target.value) || 60 })}
@@ -324,7 +397,7 @@ const SessionModal = ({ isOpen, onClose, session, projectId, phases, onSave }) =
           
           {form.type === 'presencial' && (
             <Input
-              label="UbicaciÃ³n"
+              label="Ubicacion"
               value={form.location}
               onChange={e => setForm({ ...form, location: e.target.value })}
               placeholder="Ej: Oficina Madrid"
@@ -340,6 +413,84 @@ const SessionModal = ({ isOpen, onClose, session, projectId, phases, onSave }) =
               ...phases.map(p => ({ value: p.id, label: p.name }))
             ]}
           />
+
+          {/* Attendees Section */}
+          <div>
+            <label className="block text-sm font-medium text-apple-gray-500 mb-1.5">
+              Asistentes
+            </label>
+            
+            <div className="relative">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => handleSearch(e.target.value)}
+                placeholder="Buscar por nombre o email..."
+                className="w-full px-3 py-2 text-sm bg-apple-gray-50 border border-apple-gray-200 rounded-lg focus:outline-none focus:bg-white focus:border-apple-blue"
+              />
+              {searching && (
+                <div className="absolute right-3 top-2.5">
+                  <div className="w-4 h-4 border-2 border-apple-gray-300 border-t-apple-blue rounded-full animate-spin" />
+                </div>
+              )}
+              
+              {searchResults.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-apple-gray-200 rounded-lg shadow-lg max-h-48 overflow-auto">
+                  {searchResults.map((person, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => addAttendee(person)}
+                      className="w-full px-3 py-2 text-left hover:bg-apple-gray-50 flex items-center gap-2"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-apple-gray-100 flex items-center justify-center">
+                        <Icon name="person" className="text-apple-gray-400 text-sm" />
+                      </div>
+                      <div>
+                        <div className="text-sm text-apple-gray-600">{person.name || person.displayName}</div>
+                        <div className="text-xs text-apple-gray-400">{person.email}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {projectMembers.length > 0 && searchQuery.length === 0 && (
+              <div className="mt-2">
+                <span className="text-xs text-apple-gray-400">Miembros del proyecto:</span>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {projectMembers.slice(0, 5).map((m, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => addAttendee({ email: m.email, name: m.name, type: 'client' })}
+                      className="px-2 py-1 text-xs bg-apple-gray-100 hover:bg-apple-gray-200 rounded-md"
+                    >
+                      {m.name || m.email}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {form.attendees.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-3">
+                {form.attendees.map((a, idx) => (
+                  <div 
+                    key={idx}
+                    className="flex items-center gap-1 px-2 py-1 bg-purple-50 text-purple-700 rounded-lg text-sm"
+                  >
+                    <span>{a.name || a.email}</span>
+                    <button 
+                      onClick={() => removeAttendee(a.email)}
+                      className="hover:text-purple-900"
+                    >
+                      <Icon name="close" className="text-sm" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           
           <div className="flex justify-between pt-4">
             {session && (
@@ -357,16 +508,16 @@ const SessionModal = ({ isOpen, onClose, session, projectId, phases, onSave }) =
         </div>
       </Modal>
       
-      {/* Conflict Popup */}
+      {/* Conflict Popup - Fixed Width */}
       <Modal 
         isOpen={showConflictPopup} 
         onClose={() => setShowConflictPopup(false)} 
-        title="âš ï¸ Fecha fuera de rango" 
-        size="sm"
+        title="Fecha fuera de rango" 
+        size="small"
       >
         <div className="space-y-4">
-          <p className="text-gray-600">
-            La fecha <strong>{formatDate(conflict?.sessionDate)}</strong> estÃ¡ fuera del rango 
+          <p className="text-apple-gray-500">
+            La fecha <strong>{formatDate(conflict?.sessionDate)}</strong> esta fuera del rango 
             de la fase "<strong>{conflict?.phase?.name}</strong>" 
             ({formatDate(conflict?.phase?.startDate)} - {formatDate(conflict?.phase?.endDate)}).
           </p>
@@ -376,21 +527,21 @@ const SessionModal = ({ isOpen, onClose, session, projectId, phases, onSave }) =
               onClick={() => handleConflictOption('extend')} 
               className="w-full"
             >
-              <Icon name="expand" /> Extender rango de la fase
+              Extender rango de la fase
             </Button>
             <Button 
               variant="secondary" 
               onClick={() => setShowConflictPopup(false)} 
               className="w-full"
             >
-              <Icon name="edit_calendar" /> Cambiar fecha de la sesiÃ³n
+              Cambiar fecha de la sesion
             </Button>
             <Button 
-              variant="outline" 
+              variant="ghost" 
               onClick={() => handleConflictOption('noPhase')} 
               className="w-full"
             >
-              <Icon name="link_off" /> Crear sin asignar a fase
+              Crear sin asignar a fase
             </Button>
           </div>
         </div>
@@ -400,15 +551,19 @@ const SessionModal = ({ isOpen, onClose, session, projectId, phases, onSave }) =
 };
 
 // ============================================
-// TASK MODAL
+// TASK MODAL - Con asignacion a personas
 // ============================================
 
 const TaskModal = ({ isOpen, onClose, task, projectId, phases, onSave }) => {
   const [form, setForm] = useState({
     title: '', description: '', dueDate: '', phaseId: '',
-    visibility: 'public', assignedToType: '', priority: 'medium', status: 'pending'
+    visibility: 'public', assignedToType: '', assignedToId: '', 
+    assignedToEmail: '', assignedToName: '',
+    priority: 'medium', status: 'pending'
   });
   const [loading, setLoading] = useState(false);
+  const [projectMembers, setProjectMembers] = useState([]);
+  const [teamMembers, setTeamMembers] = useState([]);
   const toast = useToast();
 
   useEffect(() => {
@@ -420,20 +575,64 @@ const TaskModal = ({ isOpen, onClose, task, projectId, phases, onSave }) => {
         phaseId: task.phaseId || '',
         visibility: task.visibility || 'public',
         assignedToType: task.assignedToType || '',
+        assignedToId: task.assignedToId || '',
+        assignedToEmail: task.assignedToEmail || '',
+        assignedToName: task.assignedToName || '',
         priority: task.priority || 'medium',
         status: task.status || 'pending'
       });
     } else {
       setForm({
-        title: '', description: '', dueDate: '', phaseId: '',
-        visibility: 'public', assignedToType: '', priority: 'medium', status: 'pending'
+        title: '', description: '', dueDate: '', phaseId: phases[0]?.id || '',
+        visibility: 'public', assignedToType: '', assignedToId: '',
+        assignedToEmail: '', assignedToName: '',
+        priority: 'medium', status: 'pending'
       });
     }
-  }, [task, isOpen]);
+  }, [task, isOpen, phases]);
+
+  useEffect(() => {
+    if (isOpen && projectId) {
+      loadMembers();
+    }
+  }, [isOpen, projectId]);
+
+  const loadMembers = async () => {
+    try {
+      const clients = await api.get(`/api/projects/${projectId}/client-access`);
+      setProjectMembers(clients || []);
+    } catch (e) {
+      console.log('No project members');
+    }
+    
+    setTeamMembers([
+      { id: 'pv1', name: 'Plain Vanilla', email: 'team@plainvanilla.ai', type: 'team' }
+    ]);
+  };
+
+  const handleAssign = (person) => {
+    setForm({
+      ...form,
+      assignedToType: person.type || (person.email?.includes('plainvanilla') ? 'team' : 'client'),
+      assignedToId: person.id || person.user_id || '',
+      assignedToEmail: person.email,
+      assignedToName: person.name || person.displayName || person.email
+    });
+  };
+
+  const clearAssignment = () => {
+    setForm({
+      ...form,
+      assignedToType: '',
+      assignedToId: '',
+      assignedToEmail: '',
+      assignedToName: ''
+    });
+  };
 
   const handleSave = async () => {
     if (!form.title) {
-      toast.error('El tÃ­tulo es requerido');
+      toast.error('El titulo es requerido');
       return;
     }
     
@@ -455,7 +654,7 @@ const TaskModal = ({ isOpen, onClose, task, projectId, phases, onSave }) => {
   };
 
   const handleDelete = async () => {
-    if (!confirm('Â¿Eliminar esta tarea?')) return;
+    if (!confirm('Eliminar esta tarea?')) return;
     
     setLoading(true);
     try {
@@ -473,15 +672,15 @@ const TaskModal = ({ isOpen, onClose, task, projectId, phases, onSave }) => {
     <Modal isOpen={isOpen} onClose={onClose} title={task ? 'Editar tarea' : 'Nueva tarea'}>
       <div className="space-y-4">
         <Input
-          label="TÃ­tulo"
+          label="Titulo"
           required
           value={form.title}
           onChange={e => setForm({ ...form, title: e.target.value })}
-          placeholder="Ej: Preparar documentaciÃ³n"
+          placeholder="Ej: Preparar documentacion"
         />
         
         <Textarea
-          label="DescripciÃ³n"
+          label="Descripcion"
           value={form.description}
           onChange={e => setForm({ ...form, description: e.target.value })}
           rows={2}
@@ -489,7 +688,7 @@ const TaskModal = ({ isOpen, onClose, task, projectId, phases, onSave }) => {
         
         <div className="grid grid-cols-2 gap-4">
           <Input
-            label="Fecha lÃ­mite"
+            label="Fecha limite"
             type="date"
             value={form.dueDate}
             onChange={e => setForm({ ...form, dueDate: e.target.value })}
@@ -505,24 +704,14 @@ const TaskModal = ({ isOpen, onClose, task, projectId, phases, onSave }) => {
           />
         </div>
         
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           <Select
             label="Visibilidad"
             value={form.visibility}
             onChange={e => setForm({ ...form, visibility: e.target.value })}
             options={[
-              { value: 'public', label: 'PÃºblica' },
+              { value: 'public', label: 'Publica' },
               { value: 'internal', label: 'Interna' }
-            ]}
-          />
-          <Select
-            label="Asignada a"
-            value={form.assignedToType}
-            onChange={e => setForm({ ...form, assignedToType: e.target.value })}
-            options={[
-              { value: '', label: 'Sin asignar' },
-              { value: 'client', label: 'Cliente' },
-              { value: 'team', label: 'Equipo PV' }
             ]}
           />
           <Select
@@ -535,6 +724,71 @@ const TaskModal = ({ isOpen, onClose, task, projectId, phases, onSave }) => {
               { value: 'high', label: 'Alta' }
             ]}
           />
+        </div>
+        
+        {/* Assignment Section */}
+        <div>
+          <label className="block text-sm font-medium text-apple-gray-500 mb-1.5">
+            Asignar a
+          </label>
+          
+          {form.assignedToEmail ? (
+            <div className="flex items-center gap-2 p-2 bg-apple-gray-50 rounded-lg">
+              <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
+                <Icon name="person" className="text-purple-600 text-sm" />
+              </div>
+              <div className="flex-1">
+                <div className="text-sm font-medium text-apple-gray-600">{form.assignedToName}</div>
+                <div className="text-xs text-apple-gray-400">{form.assignedToEmail}</div>
+              </div>
+              <Badge color={form.assignedToType === 'team' ? 'purple' : 'blue'}>
+                {form.assignedToType === 'team' ? 'Equipo PV' : 'Cliente'}
+              </Badge>
+              <button onClick={clearAssignment} className="p-1 hover:bg-apple-gray-200 rounded">
+                <Icon name="close" className="text-apple-gray-400 text-sm" />
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {teamMembers.length > 0 && (
+                <div>
+                  <span className="text-xs text-apple-gray-400">Equipo Plain Vanilla:</span>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {teamMembers.map((m, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => handleAssign({ ...m, type: 'team' })}
+                        className="px-2 py-1 text-xs bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-md"
+                      >
+                        {m.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {projectMembers.length > 0 && (
+                <div>
+                  <span className="text-xs text-apple-gray-400">Clientes del proyecto:</span>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {projectMembers.map((m, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => handleAssign({ ...m, type: 'client' })}
+                        className="px-2 py-1 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-md"
+                      >
+                        {m.name || m.email}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {projectMembers.length === 0 && teamMembers.length === 0 && (
+                <p className="text-xs text-apple-gray-400">No hay personas disponibles</p>
+              )}
+            </div>
+          )}
         </div>
         
         {task && (
@@ -622,7 +876,7 @@ const ClientAccessModal = ({ isOpen, onClose, project, onSave }) => {
   };
 
   const handleDelete = async (userId) => {
-    if (!confirm('Â¿Eliminar este acceso?')) return;
+    if (!confirm('Eliminar este acceso?')) return;
     
     try {
       await api.delete(`/api/projects/${project.id}/client-access/${userId}`);
@@ -636,11 +890,10 @@ const ClientAccessModal = ({ isOpen, onClose, project, onSave }) => {
   const portalUrl = `${window.location.origin}/portal/${project.slug}`;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Acceso cliente" size="lg">
+    <Modal isOpen={isOpen} onClose={onClose} title="Acceso cliente" size="large">
       <div className="space-y-6">
-        {/* Create New Access */}
-        <div className="p-4 bg-gray-50 rounded-xl">
-          <h4 className="font-medium text-gray-800 mb-3">Crear nuevo acceso</h4>
+        <div className="p-4 bg-apple-gray-50 rounded-xl">
+          <h4 className="font-medium text-apple-gray-600 mb-3">Crear nuevo acceso</h4>
           <div className="grid grid-cols-2 gap-4 mb-3">
             <Input
               type="email"
@@ -659,11 +912,10 @@ const ClientAccessModal = ({ isOpen, onClose, project, onSave }) => {
           </Button>
         </div>
         
-        {/* Portal URL */}
         <div className="p-4 bg-purple-50 rounded-xl">
-          <h4 className="font-medium text-gray-800 mb-2">URL del portal</h4>
+          <h4 className="font-medium text-apple-gray-600 mb-2">URL del portal</h4>
           <div className="flex items-center gap-2">
-            <code className="flex-1 bg-white px-3 py-2 rounded-lg text-sm text-gray-600 border">
+            <code className="flex-1 bg-white px-3 py-2 rounded-lg text-sm text-apple-gray-500 border">
               /portal/{project.slug}
             </code>
             <button 
@@ -678,38 +930,37 @@ const ClientAccessModal = ({ isOpen, onClose, project, onSave }) => {
           </div>
         </div>
         
-        {/* Existing Accesses */}
         <div>
-          <h4 className="font-medium text-gray-800 mb-3">Accesos existentes</h4>
+          <h4 className="font-medium text-apple-gray-600 mb-3">Accesos existentes</h4>
           {loading ? (
-            <div className="text-center py-4 text-gray-400">Cargando...</div>
+            <div className="text-center py-4 text-apple-gray-400">Cargando...</div>
           ) : accesses.length === 0 ? (
-            <div className="text-center py-4 text-gray-400">No hay accesos creados</div>
+            <div className="text-center py-4 text-apple-gray-400">No hay accesos creados</div>
           ) : (
             <div className="space-y-2">
               {accesses.map(a => (
-                <div key={a.user_id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                <div key={a.user_id} className="flex items-center gap-3 p-3 bg-apple-gray-50 rounded-xl">
                   <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
                     <Icon name="person" className="text-purple-600" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium text-gray-800">{a.name || a.email}</div>
-                    <div className="text-sm text-gray-400">{a.email}</div>
+                    <div className="font-medium text-apple-gray-600">{a.name || a.email}</div>
+                    <div className="text-sm text-apple-gray-400">{a.email}</div>
                   </div>
                   <div className="flex items-center gap-1">
                     <button 
                       onClick={() => handleResend(a.user_id)} 
-                      className="p-2 hover:bg-gray-200 rounded-lg" 
+                      className="p-2 hover:bg-apple-gray-200 rounded-lg" 
                       title="Reenviar email"
                     >
-                      <Icon name="send" className="text-gray-500 text-sm" />
+                      <Icon name="send" className="text-apple-gray-500 text-sm" />
                     </button>
                     <button 
                       onClick={() => handleDelete(a.user_id)} 
                       className="p-2 hover:bg-red-100 rounded-lg" 
                       title="Eliminar"
                     >
-                      <Icon name="delete" className="text-red-500 text-sm" />
+                      <Icon name="delete" className="text-apple-red text-sm" />
                     </button>
                   </div>
                 </div>
@@ -775,118 +1026,74 @@ const M365SetupModal = ({ isOpen, onClose, project, onSave }) => {
     setSaving(false);
   };
 
-  const IntegrationCard = ({ title, icon: IconComponent, color, connected, children }) => (
-    <div className={`p-4 rounded-xl ${connected ? `bg-${color}-50 border border-${color}-200` : 'bg-gray-50'}`}>
-      <div className="flex items-center gap-3 mb-3">
-        <IconComponent className={`w-6 h-6 text-${color}-600`} />
-        <h4 className="font-medium text-gray-800">{title}</h4>
-        {connected && <Badge color="green">Conectado</Badge>}
-      </div>
-      {children}
-    </div>
-  );
-
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Configurar Microsoft 365" size="lg">
+    <Modal isOpen={isOpen} onClose={onClose} title="Configurar Microsoft 365" size="large">
       {loading ? (
-        <div className="text-center py-8 text-gray-400">
-          <Icon name="hourglass_empty" className="text-4xl animate-spin mb-2" />
+        <div className="text-center py-8 text-apple-gray-400">
+          <div className="w-8 h-8 border-2 border-apple-gray-200 border-t-pv-purple rounded-full animate-spin mx-auto mb-2" />
           <div>Cargando datos de Microsoft 365...</div>
         </div>
       ) : (
         <div className="space-y-6">
           {/* SharePoint */}
-          <IntegrationCard 
-            title="SharePoint" 
-            icon={window.SharePointIcon} 
-            color="teal" 
-            connected={!!project.sharepoint}
-          >
+          <div className={`p-4 rounded-xl ${project.sharepoint ? 'bg-green-50 border border-green-200' : 'bg-apple-gray-50'}`}>
+            <div className="flex items-center gap-3 mb-3">
+              <window.SharePointIcon className="w-6 h-6 text-teal-600" />
+              <h4 className="font-medium text-apple-gray-600">SharePoint</h4>
+              {project.sharepoint && <Badge color="green">Conectado</Badge>}
+            </div>
             {project.sharepoint ? (
-              <a 
-                href={project.sharepoint.folderUrl} 
-                target="_blank" 
-                rel="noopener" 
-                className="text-sm text-teal-600 hover:underline"
-              >
-                Abrir carpeta en SharePoint â†’
+              <a href={project.sharepoint.folderUrl} target="_blank" rel="noopener" className="text-sm text-teal-600 hover:underline">
+                Abrir carpeta en SharePoint
               </a>
             ) : (
-              <select 
-                value={selectedSite} 
-                onChange={e => setSelectedSite(e.target.value)} 
-                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
-              >
+              <select value={selectedSite} onChange={e => setSelectedSite(e.target.value)} className="w-full px-3 py-2 text-sm bg-white border border-apple-gray-200 rounded-lg">
                 <option value="">Seleccionar sitio...</option>
-                {sites.map(s => (
-                  <option key={s.id} value={s.id}>{s.displayName}</option>
-                ))}
+                {sites.map(s => <option key={s.id} value={s.id}>{s.displayName}</option>)}
               </select>
             )}
-          </IntegrationCard>
+          </div>
           
           {/* Teams */}
-          <IntegrationCard 
-            title="Teams" 
-            icon={window.TeamsIcon} 
-            color="purple" 
-            connected={!!project.teams}
-          >
+          <div className={`p-4 rounded-xl ${project.teams ? 'bg-green-50 border border-green-200' : 'bg-apple-gray-50'}`}>
+            <div className="flex items-center gap-3 mb-3">
+              <window.TeamsIcon className="w-6 h-6 text-purple-600" />
+              <h4 className="font-medium text-apple-gray-600">Teams</h4>
+              {project.teams && <Badge color="green">Conectado</Badge>}
+            </div>
             {project.teams ? (
-              <a 
-                href={project.teams.channelUrl} 
-                target="_blank" 
-                rel="noopener" 
-                className="text-sm text-purple-600 hover:underline"
-              >
-                Abrir canal en Teams â†’
+              <a href={project.teams.channelUrl} target="_blank" rel="noopener" className="text-sm text-purple-600 hover:underline">
+                Abrir canal en Teams
               </a>
             ) : (
-              <select 
-                value={selectedTeam} 
-                onChange={e => setSelectedTeam(e.target.value)} 
-                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
-              >
+              <select value={selectedTeam} onChange={e => setSelectedTeam(e.target.value)} className="w-full px-3 py-2 text-sm bg-white border border-apple-gray-200 rounded-lg">
                 <option value="">Seleccionar equipo...</option>
-                {teams.map(t => (
-                  <option key={t.id} value={t.id}>{t.displayName}</option>
-                ))}
+                {teams.map(t => <option key={t.id} value={t.id}>{t.displayName}</option>)}
               </select>
             )}
-          </IntegrationCard>
+          </div>
           
           {/* Planner */}
-          <IntegrationCard 
-            title="Planner" 
-            icon={window.PlannerIcon} 
-            color="green" 
-            connected={!!project.planner}
-          >
+          <div className={`p-4 rounded-xl ${project.planner ? 'bg-green-50 border border-green-200' : 'bg-apple-gray-50'}`}>
+            <div className="flex items-center gap-3 mb-3">
+              <window.PlannerIcon className="w-6 h-6 text-green-600" />
+              <h4 className="font-medium text-apple-gray-600">Planner</h4>
+              {project.planner && <Badge color="green">Conectado</Badge>}
+            </div>
             {project.planner ? (
-              <span className="text-sm text-green-600">
-                Plan: {project.planner.planTitle || project.planner.planId}
-              </span>
+              <span className="text-sm text-green-600">Plan: {project.planner.planTitle || project.planner.planId}</span>
             ) : (
-              <select 
-                value={selectedGroup} 
-                onChange={e => setSelectedGroup(e.target.value)} 
-                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
-              >
+              <select value={selectedGroup} onChange={e => setSelectedGroup(e.target.value)} className="w-full px-3 py-2 text-sm bg-white border border-apple-gray-200 rounded-lg">
                 <option value="">Seleccionar grupo...</option>
-                {groups.map(g => (
-                  <option key={g.id} value={g.id}>{g.displayName}</option>
-                ))}
+                {groups.map(g => <option key={g.id} value={g.id}>{g.displayName}</option>)}
               </select>
             )}
-          </IntegrationCard>
+          </div>
           
           <div className="flex justify-end gap-2 pt-4">
             <Button variant="secondary" onClick={onClose}>Cerrar</Button>
             {(!project.sharepoint || !project.teams || !project.planner) && (
-              <Button 
-                onClick={handleSetup} 
-                disabled={saving || (!selectedSite && !selectedTeam && !selectedGroup)}
-              >
+              <Button onClick={handleSetup} disabled={saving || (!selectedSite && !selectedTeam && !selectedGroup)}>
                 {saving ? 'Configurando...' : 'Configurar seleccionados'}
               </Button>
             )}
