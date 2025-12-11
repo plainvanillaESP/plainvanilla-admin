@@ -140,7 +140,7 @@ const TimelineView = ({ phases, sessions, tasks, onEditPhase, onEditSession }) =
                             onClick={e => e.stopPropagation()} 
                             className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg text-sm font-medium transition-colors"
                           >
-                            <window.TeamsIcon className="w-4 h-4" />
+                            
                             Unirse
                           </a>
                         )}
@@ -247,7 +247,7 @@ const KanbanView = ({ phases, sessions, tasks }) => {
                         rel="noopener" 
                         className="mt-2 flex items-center gap-1 text-sm text-purple-600 hover:text-purple-800"
                       >
-                        <window.TeamsIcon className="w-4 h-4" />
+                        
                         Unirse a Teams
                       </a>
                     )}
