@@ -18,16 +18,6 @@ function calculateEndDateTime(date, time, duration) {
   if (endHours >= 24) { endHours = 23; endMinutes = 59; }
   return `${date}T${String(endHours).padStart(2, "0")}:${String(endMinutes).padStart(2, "0")}:00`;
 }
-
-// Helper para calcular hora fin sin timezone issues
-function calculateEndDateTime(date, time, duration) {
-  const [hours, minutes] = time.split(":").map(Number);
-  let endMinutes = minutes + (duration || 60);
-  let endHours = hours + Math.floor(endMinutes / 60);
-  endMinutes = endMinutes % 60;
-  if (endHours >= 24) { endHours = 23; endMinutes = 59; }
-  return `${date}T${String(endHours).padStart(2, "0")}:${String(endMinutes).padStart(2, "0")}:00`;
-}
 const db = require('./db');
 
 const app = express();
@@ -334,9 +324,9 @@ app.post('/api/projects/:id/sessions', requireAuth, async (req, res) => {
       try {
         console.log('Creating Teams meeting for:', title);
         const startDateTime = `${date}T${time}:00`;
-        const endDateTime = calculateEndDateTime(date, time, duration); // FIXED
-        
-        
+        const endDate = new Date(`${date}T${time}`);
+        endDate.setMinutes(endDate.getMinutes() + (duration || 60));
+        const endDateTime = endDate.toISOString().slice(0, 19);
 
         const attendeeEmails = (attendees || []).map(a => typeof a === 'string' ? a : a.email).filter(e => e);
         teamsData = await graph.createOnlineMeeting(
@@ -428,9 +418,9 @@ app.put('/api/projects/:id/sessions/:sessionId', requireAuth, async (req, res) =
         const { date, time, title, duration } = { ...currentSession, ...req.body };
         if (date && time) {
           const startDateTime = `${date}T${time}:00`;
-          const endDateTime = calculateEndDateTime(date, time, duration); // FIXED
-          
-          
+          const endDate = new Date(`${date}T${time}`);
+          endDate.setMinutes(endDate.getMinutes() + (duration || 60));
+          const endDateTime = endDate.toISOString().slice(0, 19);
 
           await graph.updateCalendarEvent(req.session.user.accessToken, currentSession.calendarEventId, {
             subject: title,
