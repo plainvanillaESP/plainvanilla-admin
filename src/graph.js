@@ -276,16 +276,27 @@ async function createGroupEvent(accessToken, groupId, event) {
 async function createOnlineMeeting(accessToken, subject, startDateTime, endDateTime, attendees = []) {
   const client = getClient(accessToken);
   
+  // Formatear attendees correctamente
+  const formattedAttendees = attendees.map(a => {
+    const email = typeof a === 'string' ? a : a.email;
+    const name = typeof a === 'string' ? email : (a.name || email);
+    return {
+      emailAddress: { address: email, name: name },
+      type: 'required'
+    };
+  });
+  
   const meeting = {
     subject,
     start: { dateTime: startDateTime, timeZone: 'Europe/Madrid' },
     end: { dateTime: endDateTime, timeZone: 'Europe/Madrid' },
     isOnlineMeeting: true,
     onlineMeetingProvider: 'teamsForBusiness',
-    attendees: attendees.map(email => ({
-      emailAddress: { address: email },
-      type: 'required'
-    }))
+    attendees: formattedAttendees,
+    isReminderOn: true,
+    reminderMinutesBeforeStart: 15,
+    responseRequested: true,
+    allowNewTimeProposals: true
   };
   
   const event = await client.api('/me/events').post(meeting);
@@ -294,8 +305,80 @@ async function createOnlineMeeting(accessToken, subject, startDateTime, endDateT
     joinUrl: event.onlineMeeting?.joinUrl || '',
     subject: event.subject,
     start: event.start,
+    end: event.end,
+    attendees: event.attendees
+  };
+}
+
+// Actualizar evento con opción de notificar
+async function updateOnlineMeeting(accessToken, eventId, updates, sendNotifications = false) {
+  const client = getClient(accessToken);
+  
+  const payload = {};
+  
+  if (updates.subject) payload.subject = updates.subject;
+  if (updates.startDateTime) {
+    payload.start = { dateTime: updates.startDateTime, timeZone: 'Europe/Madrid' };
+  }
+  if (updates.endDateTime) {
+    payload.end = { dateTime: updates.endDateTime, timeZone: 'Europe/Madrid' };
+  }
+  if (updates.attendees) {
+    payload.attendees = updates.attendees.map(a => {
+      const email = typeof a === 'string' ? a : a.email;
+      const name = typeof a === 'string' ? email : (a.name || email);
+      return {
+        emailAddress: { address: email, name: name },
+        type: 'required'
+      };
+    });
+  }
+  
+  // Si sendNotifications es true, Graph API enviará notificaciones automáticamente
+  const event = await client.api(\`/me/events/\${eventId}\`).patch(payload);
+  
+  return {
+    id: event.id,
+    joinUrl: event.onlineMeeting?.joinUrl || '',
+    subject: event.subject,
+    start: event.start,
     end: event.end
   };
+}
+
+// Añadir asistentes a un evento existente (siempre notifica)
+async function addAttendeesToMeeting(accessToken, eventId, newAttendees) {
+  const client = getClient(accessToken);
+  
+  // Obtener evento actual
+  const currentEvent = await client.api(\`/me/events/\${eventId}\`).get();
+  
+  // Combinar asistentes existentes con nuevos
+  const existingEmails = new Set(
+    (currentEvent.attendees || []).map(a => a.emailAddress.address.toLowerCase())
+  );
+  
+  const allAttendees = [...(currentEvent.attendees || [])];
+  
+  newAttendees.forEach(a => {
+    const email = typeof a === 'string' ? a : a.email;
+    if (!existingEmails.has(email.toLowerCase())) {
+      allAttendees.push({
+        emailAddress: { 
+          address: email, 
+          name: typeof a === 'string' ? email : (a.name || email) 
+        },
+        type: 'required'
+      });
+    }
+  });
+  
+  // Actualizar con todos los asistentes (Graph enviará invitación a los nuevos)
+  const event = await client.api(\`/me/events/\${eventId}\`).patch({
+    attendees: allAttendees
+  });
+  
+  return event;
 }
 
 /**
@@ -505,6 +588,8 @@ module.exports = {
   listEvents,
   createEvent,
   createOnlineMeeting,
+  updateOnlineMeeting,
+  addAttendeesToMeeting,
   searchUsers,
   getMyContacts,
   createGroupEvent,

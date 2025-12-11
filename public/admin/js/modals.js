@@ -568,6 +568,7 @@ const TaskModal = ({ isOpen, onClose, task, projectId, phases, onSave }) => {
   }, [isOpen, projectId]);
 
   const loadMembers = async () => {
+    // Cargar clientes del proyecto
     try {
       const clients = await api.get(`/api/projects/${projectId}/client-access`);
       setProjectMembers(clients || []);
@@ -576,14 +577,17 @@ const TaskModal = ({ isOpen, onClose, task, projectId, phases, onSave }) => {
     }
     // Cargar equipo Plain Vanilla
     try {
-      const contacts = await api.get('/api/contacts/search?q=plainvanilla');
-      const pvTeam = (contacts || []).filter(c => c.email && c.email.includes('@plainvanilla.ai'));
+      const allContacts = await api.get('/api/contacts/search?q=plainvanilla.ai');
+      const pvTeam = (allContacts || []).filter(c => 
+        c.email && 
+        c.email.toLowerCase().includes('@plainvanilla.ai') &&
+        !c.email.includes('github') &&
+        !c.email.includes('exchangelabs')
+      );
       setTeamMembers(pvTeam);
     } catch (e) {
-      // Fallback hardcoded
-      setTeamMembers([
-        { name: 'Equipo Plain Vanilla', email: 'team@plainvanilla.ai' }
-      ]);
+      console.log('No team members found');
+      setTeamMembers([]);
     }
   };
 

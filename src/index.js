@@ -309,8 +309,10 @@ app.post('/api/projects/:id/sessions', requireAuth, async (req, res) => {
     let teamsData = null;
 
     // Create Teams meeting if online
+    console.log('Session type:', type, 'Has token:', !!req.session.user?.accessToken);
     if (type === 'online' && req.session.user?.accessToken) {
       try {
+        console.log('Creating Teams meeting for:', title);
         const startDateTime = `${date}T${time}:00`;
         const endDate = new Date(`${date}T${time}`);
         endDate.setMinutes(endDate.getMinutes() + (duration || 60));
@@ -323,6 +325,7 @@ app.post('/api/projects/:id/sessions', requireAuth, async (req, res) => {
           endDateTime,
           attendees || []
         );
+        console.log('Teams meeting created:', teamsData?.joinUrl);
       } catch (e) {
         console.error('Error creating Teams meeting:', e.message);
       }
@@ -351,13 +354,56 @@ app.post('/api/projects/:id/sessions', requireAuth, async (req, res) => {
 app.put('/api/projects/:id/sessions/:sessionId', requireAuth, async (req, res) => {
   try {
     const currentSession = await db.getSession(req.params.sessionId);
-    if (!currentSession) return res.status(404).json({ error: 'Sesión no encontrada' });
+    if (!currentSession) return res.status(404).json({ error: 'Sesion no encontrada' });
 
-    const session = await db.updateSession(req.params.sessionId, req.body);
+    const { notifyAttendees, attendees, ...sessionData } = req.body;
+    const session = await db.updateSession(req.params.sessionId, sessionData);
 
     // Update Teams event if exists
     if (currentSession.calendarEventId && req.session.user?.accessToken) {
       try {
+        const project = await db.getProject(req.params.id);
+        
+        // Detectar nuevos asistentes
+        const currentAttendees = currentSession.attendees || [];
+        const newAttendees = (attendees || []).filter(a => 
+          !currentAttendees.find(ca => ca.email === a.email)
+        );
+        
+        // Si hay nuevos asistentes, siempre notificar
+        if (newAttendees.length > 0) {
+          await graph.addAttendeesToMeeting(
+            req.session.user.accessToken,
+            currentSession.calendarEventId,
+            newAttendees
+          );
+          console.log('Nuevos asistentes notificados:', newAttendees.map(a => a.email));
+        }
+        
+        // Si hay cambios en fecha/hora y notifyAttendees es true
+        const hasTimeChanges = 
+          sessionData.date !== currentSession.date || 
+          sessionData.time !== currentSession.time ||
+          sessionData.title !== currentSession.title;
+          
+        if (hasTimeChanges && notifyAttendees) {
+          const startDateTime = sessionData.date + 'T' + sessionData.time + ':00';
+          const endDate = new Date(sessionData.date + 'T' + sessionData.time);
+          endDate.setMinutes(endDate.getMinutes() + (sessionData.duration || 60));
+          
+          await graph.updateOnlineMeeting(
+            req.session.user.accessToken,
+            currentSession.calendarEventId,
+            {
+              subject: '[' + project.name + '] ' + sessionData.title,
+              startDateTime: startDateTime,
+              endDateTime: endDate.toISOString().slice(0, 19),
+              attendees: attendees
+            },
+            true
+          );
+          console.log('Asistentes notificados de cambios');
+        }
         const { date, time, title, duration } = { ...currentSession, ...req.body };
         if (date && time) {
           const startDateTime = `${date}T${time}:00`;
@@ -982,7 +1028,7 @@ async function syncPhaseToCalendar(accessToken, phase, project) {
       await graph.updateCalendarEvent(accessToken, phase.calendarEventId, event);
       return phase.calendarEventId;
     } else {
-      const result = await graph.createCalendarEvent(accessToken, event);
+      const result = await graph.createEvent(accessToken, event);
       return result.id;
     }
   } catch (e) {
