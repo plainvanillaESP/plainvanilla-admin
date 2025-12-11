@@ -62,7 +62,7 @@ const PhaseModal = ({ isOpen, onClose, phase, projectId, phases, onSave }) => {
 
 const handleSave = async () => {
     if (!form.title) {
-      toast.error('El nombre es requerido');
+      toast.error('El titulo es requerido');
       return;
     }
     
@@ -170,7 +170,6 @@ const SessionModal = ({ isOpen, onClose, session, projectId, phases, onSave }) =
     attendees: []
   });
   const [loading, setLoading] = useState(false);
-  const [notifyAttendees, setNotifyAttendees] = useState(false);
   const [showConflictPopup, setShowConflictPopup] = useState(false);
   const [conflict, setConflict] = useState(null);
   
@@ -202,7 +201,6 @@ const SessionModal = ({ isOpen, onClose, session, projectId, phases, onSave }) =
     }
     setSearchQuery('');
     setSearchResults([]);
-    setNotifyAttendees(false);
   }, [session, isOpen, phases]);
 
   const handleSearch = async (query) => {
@@ -384,19 +382,6 @@ const SessionModal = ({ isOpen, onClose, session, projectId, phases, onSave }) =
               onChange={e => setForm({ ...form, location: e.target.value })}
               placeholder="Ej: Oficina Madrid"
             />
-          )}
-          
-          {/* Checkbox notificar - solo al editar sesiones online */}
-          {session && form.type === 'online' && (
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={notifyAttendees}
-                onChange={e => setNotifyAttendees(e.target.checked)}
-                className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
-              />
-              <span className="text-sm text-gray-700">Notificar cambios a los asistentes</span>
-            </label>
           )}
           
           <Select
@@ -628,7 +613,7 @@ const TaskModal = ({ isOpen, onClose, task, projectId, phases, onSave }) => {
 
   const handleSave = async () => {
     if (!form.title) {
-      toast.error('El nombre es requerido');
+      toast.error('El titulo es requerido');
       return;
     }
     

@@ -28,22 +28,8 @@ const ProjectDetailView = ({ projectId, onBack, onRefresh }) => {
   const [editingPhase, setEditingPhase] = useState(null);
   const [editingSession, setEditingSession] = useState(null);
   const [editingTask, setEditingTask] = useState(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [sessionToDelete, setSessionToDelete] = useState(null);
-  const [deleting, setDeleting] = useState(false);
   
   const toast = useToast();
-
-  const handleDeleteSession = async (session) => {
-    if (!confirm(`¿Eliminar la sesión "${session.title}"?`)) return;
-    try {
-      await api.delete(`/api/projects/${projectId}/sessions/${session.id}`);
-      toast.success("Sesión eliminada");
-      loadProject();
-    } catch (e) {
-      toast.error("Error al eliminar sesión");
-    }
-  };
 
   const loadProject = async () => {
     try {
@@ -192,7 +178,6 @@ const ProjectDetailView = ({ projectId, onBack, onRefresh }) => {
                   tasks={tasks}
                   onEditPhase={p => { setEditingPhase(p); setShowPhaseModal(true); }}
                   onEditSession={s => { setEditingSession(s); setShowSessionModal(true); }}
-                  onDeleteSession={handleDeleteSession}
                 />
               )}
             </div>
@@ -318,21 +303,6 @@ const ProjectDetailView = ({ projectId, onBack, onRefresh }) => {
       {window.M365SetupModal && (
         <window.M365SetupModal isOpen={showM365Modal} onClose={() => setShowM365Modal(false)} project={project} onSave={loadProject} />
       )}
-    
-      
-      {/* Confirm Delete Session Modal */}
-      {window.ConfirmModal && (
-        <window.ConfirmModal
-          isOpen={showDeleteConfirm}
-          onClose={() => { setShowDeleteConfirm(false); setSessionToDelete(null); }}
-          onConfirm={confirmDeleteSession}
-          title="Eliminar sesión"
-          message={`¿Estás seguro de eliminar la sesión "${sessionToDelete?.title}"? Se notificará a todos los asistentes de la cancelación.`}
-          confirmText="Eliminar"
-          confirmVariant="danger"
-          loading={deleting}
-        />
-      )}
     </div>
   );
 };
@@ -348,17 +318,6 @@ const BudgetCard = ({ project, onSave }) => {
   const [newAddOn, setNewAddOn] = useState({ name: '', price: '' });
   const [saving, setSaving] = useState(false);
   const toast = useToast();
-
-  const handleDeleteSession = async (session) => {
-    if (!confirm(`¿Eliminar la sesión "${session.title}"?`)) return;
-    try {
-      await api.delete(`/api/projects/${projectId}/sessions/${session.id}`);
-      toast.success("Sesión eliminada");
-      loadProject();
-    } catch (e) {
-      toast.error("Error al eliminar sesión");
-    }
-  };
 
   const revenue = calculateProjectRevenue({ pricing, addOns });
 
