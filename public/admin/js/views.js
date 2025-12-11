@@ -48,14 +48,20 @@ const TimelineView = ({ phases, sessions, tasks, onEditPhase, onEditSession, onD
     containers.forEach(container => {
       const sortable = new window.Sortable(container, {
         animation: 150,
-        group: 'phase-items',
+        group: { name: 'phase-items', pull: true, put: true },
         handle: '.item-drag-handle',
         ghostClass: 'opacity-50',
         onEnd: (evt) => {
           const itemId = evt.item.dataset.itemId;
           const itemType = evt.item.dataset.itemType;
           const newPhaseId = evt.to.dataset.phaseId;
+          const oldPhaseId = evt.from.dataset.phaseId;
           const newIndex = evt.newIndex;
+          
+          // Si cambió de fase, revertir el movimiento DOM y dejar que React lo haga
+          if (oldPhaseId !== newPhaseId) {
+            evt.from.insertBefore(evt.item, evt.from.children[evt.oldIndex] || null);
+          }
           
           if (itemType === 'session' && onMoveSession) {
             onMoveSession(itemId, newPhaseId, newIndex);
