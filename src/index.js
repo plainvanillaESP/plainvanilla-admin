@@ -305,6 +305,36 @@ app.put('/api/projects/:id/phases/reorder', requireAuth, async (req, res) => {
   }
 });
 
+// Move session to different phase
+app.put('/api/projects/:id/sessions/:sessionId/move', requireAuth, async (req, res) => {
+  try {
+    const { phaseId, order } = req.body;
+    await db.query(
+      'UPDATE sessions SET phase_id = $1, "order" = $2 WHERE id = $3',
+      [phaseId || null, order || 0, req.params.sessionId]
+    );
+    res.json({ success: true });
+  } catch (e) {
+    console.error('Error moving session:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Move task to different phase
+app.put('/api/projects/:id/tasks/:taskId/move', requireAuth, async (req, res) => {
+  try {
+    const { phaseId, order } = req.body;
+    await db.query(
+      'UPDATE tasks SET phase_id = $1, "order" = $2 WHERE id = $3',
+      [phaseId || null, order || 0, req.params.taskId]
+    );
+    res.json({ success: true });
+  } catch (e) {
+    console.error('Error moving task:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.delete('/api/projects/:id/phases/:phaseId', requireAuth, async (req, res) => {
   try {
     const phase = await db.getPhase(req.params.phaseId);
