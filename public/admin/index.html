@@ -3,12 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Plain Vanilla Admin</title>
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+    <title>Admin - Plain Vanilla</title>
+    
+    <!-- React 18 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel para JSX en navegador -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+    
+    <!-- html2canvas para exports -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <!-- Tailwind Config -->
     <script>
         tailwind.config = {
             theme: {
@@ -21,789 +35,154 @@
             }
         }
     </script>
+    
+    <!-- Estilos globales -->
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body, #root { height: 100%; font-family: 'Inter', sans-serif; }
+        
+        /* Material Icons */
+        .material-icons-outlined { font-size: 20px; vertical-align: middle; }
+        
+        /* Gradient backgrounds */
+        .bg-pv-gradient { background: linear-gradient(135deg, #e6007e 0%, #8b37ed 100%); }
+        .bg-pv-gradient-soft { background: linear-gradient(135deg, rgba(230,0,126,0.1) 0%, rgba(139,55,237,0.1) 100%); }
+        .text-pv-gradient { 
+            background: linear-gradient(135deg, #e6007e 0%, #8b37ed 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a1a1a1; }
+        
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fadeIn { animation: fadeIn 0.2s ease-out; }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(100%); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .animate-slideIn { animation: slideIn 0.3s ease-out; }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        
+        /* Toast animations */
+        .toast-enter { animation: slideIn 0.3s ease-out; }
+        .toast-exit { animation: slideIn 0.3s ease-out reverse; }
+        
+        /* Card hover effects */
+        .card-hover { transition: all 0.2s ease; }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
+        
+        /* Button transitions */
+        .btn-transition { transition: all 0.15s ease; }
+        
+        /* Gantt styles */
+        .gantt-bar {
+            position: absolute;
+            height: 24px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            font-size: 11px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        /* Calendar styles */
+        .calendar-day {
+            min-height: 100px;
+            border: 1px solid #e5e7eb;
+            padding: 4px;
+            background: white;
+        }
+        .calendar-day.other-month { background: #f9fafb; }
+        .calendar-day.today { background: #fef3c7; }
+        
+        /* Kanban styles */
+        .kanban-column {
+            min-height: 400px;
+            background: #f9fafb;
+            border-radius: 8px;
+            padding: 12px;
+        }
+        .kanban-card {
+            background: white;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .kanban-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        
+        /* Print styles */
+        @media print {
+            .no-print { display: none !important; }
+            .print-break { page-break-before: always; }
+        }
+    </style>
 </head>
-<body>
-    <div id="root"></div>
-    <script type="text/babel">
-        const { useState, useEffect, useRef, createContext, useContext } = React;
-
-        // Toast System
-        const ToastContext = createContext();
-        const useToast = () => useContext(ToastContext);
-        const ToastProvider = ({ children }) => {
-            const [toasts, setToasts] = useState([]);
-            const addToast = (message, type = 'info') => {
-                const id = Date.now();
-                setToasts(prev => [...prev, { id, message, type }]);
-                setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
-            };
-            return (
-                <ToastContext.Provider value={{ success: m => addToast(m, 'success'), error: m => addToast(m, 'error'), info: m => addToast(m, 'info') }}>
-                    {children}
-                    <div className="fixed bottom-4 right-4 space-y-2 z-50">
-                        {toasts.map(t => (
-                            <div key={t.id} className={`px-4 py-2 rounded-lg shadow-lg text-white ${t.type === 'success' ? 'bg-green-500' : t.type === 'error' ? 'bg-red-500' : 'bg-blue-500'}`}>
-                                {t.message}
-                            </div>
-                        ))}
-                    </div>
-                </ToastContext.Provider>
-            );
-        };
-
-        // Components
-        const Icon = ({ name, className = "" }) => <span className={`material-icons-outlined ${className}`}>{name}</span>;
-        
-        const TeamsIcon = ({ className = "" }) => (
-            <svg viewBox="0 0 24 24" className={className} fill="currentColor">
-                <path d="M19.19 8.77c.3-.3.46-.7.46-1.17 0-1.2-.97-1.2-1.2-1.2-.4 0-.77.15-1.07.36A4.5 4.5 0 0 0 12 3a4.68 4.68 0 0 0-4.64 3.78A3.39 3.39 0 0 0 3 10.17c0 1.57 1.09 2.89 2.55 3.23v5.85c0 .41.34.75.75.75h8.4c.41 0 .75-.34.75-.75V14.5h2.3c1.25 0 2.25-1.01 2.25-2.25 0-1.07-.75-1.97-1.76-2.2.25-.55.39-1.16.39-1.8 0-.16-.02-.32-.04-.48zm-4.44 1.98v8.5h-7v-5h3v5h-1.5v-4H7v4H5.25v-5.07c.25.05.5.07.75.07 2.07 0 3.88-1.13 4.86-2.8.16-.28.3-.57.42-.88h3.47v.18z"/>
-            </svg>
-        );
-        
-        const SharePointIcon = ({ className = "" }) => (
-            <svg viewBox="0 0 24 24" className={className} fill="currentColor">
-                <circle cx="10" cy="8" r="5.5" opacity="0.9"/>
-                <circle cx="17" cy="12" r="4" opacity="0.7"/>
-                <circle cx="10" cy="17" r="4.5" opacity="0.5"/>
-            </svg>
-        );
-        
-        const PlannerIcon = ({ className = "" }) => (
-            <svg viewBox="0 0 24 24" className={className} fill="currentColor">
-                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM7 12h2v5H7v-5zm4-5h2v10h-2V7zm4 3h2v7h-2v-7z"/>
-            </svg>
-        );
-        
-        const Logo = ({ className = "" }) => (
-            <svg viewBox="0 0 100 100" className={className}>
+<body class="bg-gray-50">
+    <div id="root">
+        <!-- Loading state mientras cargan los scripts -->
+        <div style="display: flex; align-items: center; justify-content: center; height: 100vh; flex-direction: column; gap: 16px;">
+            <svg viewBox="0 0 211.98 211.98" style="width: 60px; height: 60px; animation: pulse 2s infinite;">
                 <defs>
-                    <linearGradient id="pvGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#e6007e"/>
-                        <stop offset="100%" stopColor="#8b37ed"/>
+                    <linearGradient id="loadGrad" x1="0" y1="105.99" x2="211.98" y2="105.99">
+                        <stop offset="0" stop-color="#e6007e"/>
+                        <stop offset="1" stop-color="#8b37ed"/>
                     </linearGradient>
                 </defs>
-                <circle cx="50" cy="50" r="45" fill="url(#pvGrad)"/>
-                <text x="50" y="62" textAnchor="middle" fill="white" fontSize="32" fontWeight="bold" fontFamily="system-ui">PV</text>
+                <path fill="url(#loadGrad)" d="M56.43,105.99c21.77-10.17,39.38-27.79,49.56-49.56,10.18,21.77,27.79,39.38,49.56,49.56-21.77,10.18-39.39,27.79-49.56,49.56-10.18-21.77-27.79-39.39-49.56-49.56ZM211.98,92.84C163.57,86.86,125.12,48.41,119.14,0c48.4,5.97,86.86,44.43,92.83,92.83ZM92.84,0C86.87,48.41,48.41,86.87,0,92.84,5.97,44.43,44.43,5.97,92.84,0ZM0,119.15c48.4,5.98,86.86,44.43,92.83,92.83C44.43,206,5.98,167.55,0,119.15ZM119.14,211.98c5.97-48.41,44.43-86.87,92.84-92.84-5.97,48.41-44.43,86.87-92.84,92.84Z"/>
             </svg>
-        );
+            <div style="color: #6b7280; font-family: Inter, sans-serif;">Cargando...</div>
+        </div>
+    </div>
 
-        const Card = ({ children, className = "", onClick }) => (
-            <div onClick={onClick} className={`bg-white rounded-2xl shadow-sm border border-gray-100 ${onClick ? 'cursor-pointer hover:shadow-md transition-shadow' : ''} ${className}`}>
-                {children}
-            </div>
-        );
+    <!-- ============================================ -->
+    <!-- MÓDULOS JS - Orden de carga importante -->
+    <!-- ============================================ -->
+    
+    <!-- 1. Componentes base (Icon, Card, Button, Modal, Toast, etc) -->
+    <script type="text/babel" src="js/components.js"></script>
+    
+    <!-- 2. API helper y utilidades (api, formatDate, formatCurrency, etc) -->
+    <script type="text/babel" src="js/api.js"></script>
+    
+    <!-- 3. Vista Dashboard -->
+    <script type="text/babel" src="js/dashboard.js"></script>
+    
+    <!-- 4. Vista Lista de Proyectos -->
+    <script type="text/babel" src="js/projects.js"></script>
+    
+    <!-- 5. Vista Detalle de Proyecto -->
+    <script type="text/babel" src="js/project-detail.js"></script>
+    
+    <!-- 6. Vistas del Roadmap (Timeline, Kanban, Calendar, Gantt) -->
+    <script type="text/babel" src="js/views.js"></script>
+    
+    <!-- 7. Modales (Phase, Session, Task, ClientAccess, M365) -->
+    <script type="text/babel" src="js/modals.js"></script>
+    
+    <!-- 8. App principal (Sidebar, Router, Main) - ÚLTIMO -->
+    <script type="text/babel" src="js/app.js"></script>
 
-        // API Helper
-        const api = {
-            get: async (url) => { const r = await fetch(url); if (!r.ok) throw await r.json(); return r.json(); },
-            post: async (url, data) => { const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }); if (!r.ok) throw await r.json(); return r.json(); },
-            put: async (url, data) => { const r = await fetch(url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }); if (!r.ok) throw await r.json(); return r.json(); },
-            delete: async (url) => { const r = await fetch(url, { method: 'DELETE' }); if (!r.ok) throw await r.json(); return r.json(); }
-        };
-
-        // Sidebar
-        const Sidebar = ({ currentView, setCurrentView, user, onLogout }) => {
-            const menuItems = [
-                { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
-                { id: 'projects', label: 'Proyectos', icon: 'folder' },
-                { id: 'settings', label: 'Ajustes', icon: 'settings' }
-            ];
-            return (
-                <div className="w-64 bg-white border-r flex flex-col">
-                    <div className="p-6 border-b">
-                        <div className="flex items-center gap-3">
-                            <Logo className="w-10 h-10" />
-                            <span className="font-bold text-lg">Plain Vanilla</span>
-                        </div>
-                    </div>
-                    <nav className="flex-1 p-4">
-                        {menuItems.map(item => (
-                            <button key={item.id} onClick={() => setCurrentView(item.id)}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-1 transition-colors ${currentView === item.id ? 'bg-gradient-to-r from-pv-pink to-pv-purple text-white' : 'hover:bg-gray-100'}`}>
-                                <Icon name={item.icon} />{item.label}
-                            </button>
-                        ))}
-                    </nav>
-                    <div className="p-4 border-t">
-                        <div className="flex items-center gap-3 mb-3">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-pv-pink to-pv-purple flex items-center justify-center text-white font-medium">
-                                {user?.name?.charAt(0) || 'U'}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <div className="font-medium text-sm truncate">{user?.name}</div>
-                                <div className="text-xs text-gray-500 truncate">{user?.email}</div>
-                            </div>
-                        </div>
-                        <button onClick={onLogout} className="w-full flex items-center justify-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm">
-                            <Icon name="logout" className="text-lg" /> Cerrar sesión
-                        </button>
-                    </div>
-                </div>
-            );
-        };
-
-        // Login Screen
-        const LoginScreen = () => (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
-                <Card className="p-8 max-w-md w-full mx-4 text-center">
-                    <Logo className="w-20 h-20 mx-auto mb-6" />
-                    <h1 className="text-2xl font-bold mb-2">Plain Vanilla Admin</h1>
-                    <p className="text-gray-500 mb-6">Portal de administración de proyectos</p>
-                    <a href="/auth/login" className="inline-flex items-center gap-2 bg-gradient-to-r from-pv-pink to-pv-purple text-white px-6 py-3 rounded-xl font-medium hover:opacity-90 transition-opacity">
-                        <Icon name="login" /> Iniciar sesión con Microsoft
-                    </a>
-                </Card>
-            </div>
-        );
-
-        // Dashboard View
-        const DashboardView = ({ projects, onSelectProject }) => {
-            const [dashboardView, setDashboardView] = useState('list');
-            const [calendarDate, setCalendarDate] = useState(new Date());
-            
-            const getProjectDates = (project) => {
-                const dates = [];
-                (project.phases || []).forEach(p => { if (p.startDate) dates.push(p.startDate); if (p.endDate) dates.push(p.endDate); });
-                (project.sessions || []).forEach(s => { if (s.date) dates.push(s.date); });
-                (project.tasks || []).forEach(t => { if (t.dueDate) dates.push(t.dueDate); });
-                if (dates.length === 0) return { start: null, end: null };
-                dates.sort();
-                return { start: dates[0], end: dates[dates.length - 1] };
-            };
-            
-            const projectsWithDates = projects.map(p => ({ ...p, ...getProjectDates(p) }))
-                .sort((a, b) => { if (!a.start && !b.start) return 0; if (!a.start) return 1; if (!b.start) return -1; return a.start.localeCompare(b.start); });
-            
-            const activeProjects = projects.filter(p => p.status === 'active').length;
-            const totalSessions = projects.reduce((acc, p) => acc + (p.sessions || []).length, 0);
-            const pendingTasks = projects.reduce((acc, p) => acc + (p.tasks || []).filter(t => t.status !== 'completed').length, 0);
-            
-            const allSessions = projects.flatMap(p => (p.sessions || []).map(s => ({ ...s, projectName: p.name, projectId: p.id })));
-            const upcomingSessions = allSessions.filter(s => new Date(s.date) >= new Date(new Date().setHours(0,0,0,0))).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time)).slice(0, 5);
-            
-            return (
-                <div>
-                    <div className="flex items-center justify-between mb-6">
-                        <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
-                        <div className="flex border rounded-lg overflow-hidden">
-                            <button onClick={() => setDashboardView('list')} className={`px-3 py-1.5 text-sm ${dashboardView === 'list' ? 'bg-purple-600 text-white' : 'hover:bg-gray-50'}`}>
-                                <Icon name="list" className="text-sm" />
-                            </button>
-                            <button onClick={() => setDashboardView('calendar')} className={`px-3 py-1.5 text-sm border-l ${dashboardView === 'calendar' ? 'bg-purple-600 text-white' : 'hover:bg-gray-50'}`}>
-                                <Icon name="calendar_month" className="text-sm" />
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                        <Card className="p-4">
-                            <div className="flex items-center justify-between">
-                                <div><div className="text-2xl font-bold">{activeProjects}</div><div className="text-sm text-gray-500">Proyectos activos</div></div>
-                                <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center"><Icon name="folder" className="text-purple-600" /></div>
-                            </div>
-                        </Card>
-                        <Card className="p-4">
-                            <div className="flex items-center justify-between">
-                                <div><div className="text-2xl font-bold">{upcomingSessions.length}</div><div className="text-sm text-gray-500">Próximas sesiones</div></div>
-                                <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center"><Icon name="event" className="text-blue-600" /></div>
-                            </div>
-                        </Card>
-                        <Card className="p-4">
-                            <div className="flex items-center justify-between">
-                                <div><div className="text-2xl font-bold">{pendingTasks}</div><div className="text-sm text-gray-500">Tareas pendientes</div></div>
-                                <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center"><Icon name="task_alt" className="text-amber-600" /></div>
-                            </div>
-                        </Card>
-                        <Card className="p-4">
-                            <div className="flex items-center justify-between">
-                                <div><div className="text-2xl font-bold">{totalSessions}</div><div className="text-sm text-gray-500">Total sesiones</div></div>
-                                <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center"><Icon name="videocam" className="text-green-600" /></div>
-                            </div>
-                        </Card>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div className="lg:col-span-2">
-                            <Card className="p-5">
-                                <h2 className="font-semibold mb-4 flex items-center gap-2"><Icon name="folder" className="text-purple-600" />Proyectos <span className="text-sm text-gray-400 font-normal">({projects.length})</span></h2>
-                                {projectsWithDates.length === 0 ? <p className="text-gray-400 text-center py-8">No hay proyectos</p> : (
-                                    <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                                        {projectsWithDates.map(p => (
-                                            <div key={p.id} onClick={() => onSelectProject(p)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer border border-transparent hover:border-purple-200 transition-all">
-                                                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-pv-pink to-pv-purple flex items-center justify-center flex-shrink-0"><Icon name="folder" className="text-white text-sm" /></div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="font-medium text-sm">{p.name}</div>
-                                                    <div className="text-xs text-gray-500">{p.client}</div>
-                                                </div>
-                                                <div className="text-right flex-shrink-0 mr-2">
-                                                    {p.start && p.end ? (
-                                                        <div className="text-xs text-gray-400">
-                                                            {new Date(p.start).toLocaleDateString('es-ES', {day: 'numeric', month: 'short', year: 'numeric'})} → {new Date(p.end).toLocaleDateString('es-ES', {day: 'numeric', month: 'short', year: 'numeric'})}
-                                                        </div>
-                                                    ) : <span className="text-xs text-gray-400 italic">Sin fechas</span>}
-                                                </div>
-                                                <div className="flex gap-1 flex-shrink-0">
-                                                    {p.sharepoint && <span className="w-6 h-6 rounded bg-teal-100 flex items-center justify-center" title="SharePoint"><SharePointIcon className="w-4 h-4 text-teal-600" /></span>}
-                                                    {p.planner && <span className="w-6 h-6 rounded bg-green-100 flex items-center justify-center" title="Planner"><PlannerIcon className="w-4 h-4 text-green-600" /></span>}
-                                                    {p.teams && <span className="w-6 h-6 rounded bg-indigo-100 flex items-center justify-center" title="Teams"><TeamsIcon className="w-4 h-4 text-indigo-600" /></span>}
-                                                </div>
-                                                <Icon name="chevron_right" className="text-gray-300" />
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </Card>
-                        </div>
-                        <div>
-                            <Card className="p-5">
-                                <h2 className="font-semibold mb-4 flex items-center gap-2"><Icon name="event" className="text-blue-600" />Próximas sesiones</h2>
-                                {upcomingSessions.length === 0 ? <p className="text-gray-400 text-center py-4 text-sm">Sin sesiones próximas</p> : (
-                                    <div className="space-y-3">
-                                        {upcomingSessions.map(s => {
-                                            const isToday = s.date === new Date().toISOString().split('T')[0];
-                                            return (
-                                                <div key={s.id} onClick={() => onSelectProject(projects.find(p => p.id === s.projectId))} className="p-3 rounded-lg bg-gray-50 hover:bg-gray-100 cursor-pointer">
-                                                    <div className="flex items-start gap-2">
-                                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${s.type === 'online' ? 'bg-blue-100' : 'bg-amber-100'}`}>
-                                                            <Icon name={s.type === 'online' ? 'videocam' : 'location_on'} className={`text-sm ${s.type === 'online' ? 'text-blue-600' : 'text-amber-600'}`} />
-                                                        </div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <div className="font-medium text-sm truncate">{s.title}</div>
-                                                            <div className="text-xs text-gray-500">{s.projectName}</div>
-                                                            <div className={`text-xs mt-1 ${isToday ? 'text-purple-600 font-medium' : 'text-gray-500'}`}>
-                                                                {isToday ? 'Hoy' : new Date(s.date).toLocaleDateString('es-ES', {weekday: 'short', day: 'numeric', month: 'short'})} · {s.time}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                            </Card>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        // Projects View
-        const ProjectsView = ({ projects, onRefresh, onSelect }) => {
-            const [showModal, setShowModal] = useState(false);
-            const [form, setForm] = useState({ name: '', client: '', clientSlug: '', description: '' });
-            const [loading, setLoading] = useState(false);
-
-            const create = async (e) => {
-                e.preventDefault();
-                setLoading(true);
-                try {
-                    await api.post('/api/projects', form);
-                    setForm({ name: '', client: '', clientSlug: '', description: '' });
-                    setShowModal(false);
-                    onRefresh();
-                } catch (err) { alert(err.error || 'Error'); }
-                setLoading(false);
-            };
-
-            return (
-                <div>
-                    <div className="flex items-center justify-between mb-6">
-                        <h1 className="text-2xl font-bold text-gray-800">Proyectos</h1>
-                        <button onClick={() => setShowModal(true)} className="flex items-center gap-2 bg-gradient-to-r from-pv-pink to-pv-purple text-white px-4 py-2 rounded-lg text-sm font-medium"><Icon name="add" />Nuevo</button>
-                    </div>
-                    {projects.length === 0 ? (
-                        <Card className="p-12 text-center">
-                            <Icon name="folder_open" className="text-6xl text-gray-300 mb-4" />
-                            <p className="text-gray-500">No hay proyectos</p>
-                        </Card>
-                    ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {projects.map(p => (
-                                <Card key={p.id} className="p-5" onClick={() => onSelect(p)}>
-                                    <div className="flex items-start justify-between mb-3">
-                                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pv-pink to-pv-purple flex items-center justify-center">
-                                            <Icon name="folder" className="text-white" />
-                                        </div>
-                                        <span className={`px-2 py-1 rounded-full text-xs ${p.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                                            {p.status === 'active' ? 'Activo' : 'Inactivo'}
-                                        </span>
-                                    </div>
-                                    <h3 className="font-semibold mb-1">{p.name}</h3>
-                                    <p className="text-sm text-gray-500 mb-3">{p.client}</p>
-                                    <div className="flex gap-2">
-                                        {p.sharepoint && <span className="w-7 h-7 rounded-lg bg-teal-100 flex items-center justify-center"><SharePointIcon className="w-4 h-4 text-teal-600" /></span>}
-                                        {p.planner && <span className="w-7 h-7 rounded-lg bg-green-100 flex items-center justify-center"><PlannerIcon className="w-4 h-4 text-green-600" /></span>}
-                                        {p.teams && <span className="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center"><TeamsIcon className="w-4 h-4 text-indigo-600" /></span>}
-                                    </div>
-                                </Card>
-                            ))}
-                        </div>
-                    )}
-                    {showModal && (
-                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                            <Card className="p-6 max-w-md w-full mx-4">
-                                <h2 className="text-xl font-bold mb-4">Nuevo proyecto</h2>
-                                <form onSubmit={create}>
-                                    <div className="space-y-4">
-                                        <div><label className="block text-sm font-medium mb-1">Nombre</label><input value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full px-3 py-2 border rounded-lg" required /></div>
-                                        <div><label className="block text-sm font-medium mb-1">Cliente</label><input value={form.client} onChange={e => setForm({...form, client: e.target.value})} className="w-full px-3 py-2 border rounded-lg" required /></div>
-                                        <div><label className="block text-sm font-medium mb-1">Slug (URL portal)</label><input value={form.clientSlug} onChange={e => setForm({...form, clientSlug: e.target.value})} className="w-full px-3 py-2 border rounded-lg" placeholder="mi-cliente" /></div>
-                                        <div><label className="block text-sm font-medium mb-1">Descripción</label><textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="w-full px-3 py-2 border rounded-lg" rows="3" /></div>
-                                    </div>
-                                    <div className="flex gap-3 mt-6">
-                                        <button type="button" onClick={() => setShowModal(false)} className="flex-1 px-4 py-2 border rounded-lg">Cancelar</button>
-                                        <button type="submit" disabled={loading} className="flex-1 px-4 py-2 bg-gradient-to-r from-pv-pink to-pv-purple text-white rounded-lg disabled:opacity-50">{loading ? 'Creando...' : 'Crear'}</button>
-                                    </div>
-                                </form>
-                            </Card>
-                        </div>
-                    )}
-                </div>
-            );
-        };
-
-        // Project Detail
-        const ProjectDetail = ({ project, onBack, onRefresh, msConfig, toast }) => {
-            const [phases, setPhases] = useState(project.phases || []);
-            const [sessions, setSessions] = useState(project.sessions || []);
-            const [tasks, setTasks] = useState(project.tasks || []);
-            const [viewMode, setViewMode] = useState('timeline');
-            const [showPhaseForm, setShowPhaseForm] = useState(false);
-            const [showSessionForm, setShowSessionForm] = useState(false);
-            const [showTaskForm, setShowTaskForm] = useState(false);
-            const [phaseForm, setPhaseForm] = useState({ name: '', description: '', startDate: '', endDate: '' });
-            const [sessionForm, setSessionForm] = useState({ title: '', date: '', time: '', type: 'online', phaseId: '' });
-            const [taskForm, setTaskForm] = useState({ title: '', description: '', dueDate: '', phaseId: '', visibility: 'public', assignedToType: '', priority: 'medium' });
-            const [editingPhase, setEditingPhase] = useState(null);
-            const [editingSession, setEditingSession] = useState(null);
-            const [editingTask, setEditingTask] = useState(null);
-            const [taskFilter, setTaskFilter] = useState('all');
-
-            // Save Phase
-            const savePhase = async () => {
-                try {
-                    if (editingPhase) {
-                        await api.put(`/api/projects/${project.id}/phases/${editingPhase}`, phaseForm);
-                        toast.success('Fase actualizada');
-                    } else {
-                        await api.post(`/api/projects/${project.id}/phases`, phaseForm);
-                        toast.success('Fase creada');
-                    }
-                    const updated = await api.get(`/api/projects/${project.id}`);
-                    setPhases(updated.phases || []);
-                    setShowPhaseForm(false);
-                    setEditingPhase(null);
-                    setPhaseForm({ name: '', description: '', startDate: '', endDate: '' });
-                } catch (err) { toast.error('Error: ' + (err.error || err.message)); }
-            };
-
-            // Save Session
-            const saveSession = async () => {
-                try {
-                    if (editingSession) {
-                        await api.put(`/api/projects/${project.id}/sessions/${editingSession}`, sessionForm);
-                        toast.success('Sesión actualizada');
-                    } else {
-                        await api.post(`/api/projects/${project.id}/sessions`, sessionForm);
-                        toast.success('Sesión creada');
-                    }
-                    const updated = await api.get(`/api/projects/${project.id}`);
-                    setSessions(updated.sessions || []);
-                    setShowSessionForm(false);
-                    setEditingSession(null);
-                    setSessionForm({ title: '', date: '', time: '', type: 'online', phaseId: '' });
-                } catch (err) { toast.error('Error: ' + (err.error || err.message)); }
-            };
-
-            // Save Task
-            const saveTask = async () => {
-                try {
-                    if (editingTask) {
-                        await api.put(`/api/projects/${project.id}/tasks/${editingTask}`, taskForm);
-                        toast.success('Tarea actualizada');
-                    } else {
-                        await api.post(`/api/projects/${project.id}/tasks`, taskForm);
-                        toast.success('Tarea creada');
-                    }
-                    const updated = await api.get(`/api/projects/${project.id}`);
-                    setTasks(updated.tasks || []);
-                    setShowTaskForm(false);
-                    setEditingTask(null);
-                    setTaskForm({ title: '', description: '', dueDate: '', phaseId: '', visibility: 'public', assignedToType: '', priority: 'medium' });
-                } catch (err) { toast.error('Error: ' + (err.error || err.message)); }
-            };
-
-            // Edit handlers
-            const editPhase = (phase) => {
-                setPhaseForm({ name: phase.name, description: phase.description || '', startDate: phase.startDate || '', endDate: phase.endDate || '' });
-                setEditingPhase(phase.id);
-                setShowPhaseForm(true);
-            };
-
-            const editSession = (session) => {
-                setSessionForm({ title: session.title, date: session.date, time: session.time, type: session.type, phaseId: session.phaseId || '' });
-                setEditingSession(session.id);
-                setShowSessionForm(true);
-            };
-
-            const editTask = (task) => {
-                setTaskForm({ title: task.title, description: task.description || '', dueDate: task.dueDate || '', phaseId: task.phaseId || '', visibility: task.visibility || 'public', assignedToType: task.assignedToType || '', priority: task.priority || 'medium', status: task.status || 'pending' });
-                setEditingTask(task.id);
-                setShowTaskForm(true);
-            };
-
-            // Delete handlers
-            const deletePhase = async (id) => {
-                if (!confirm('¿Eliminar esta fase?')) return;
-                await api.delete(`/api/projects/${project.id}/phases/${id}`);
-                setPhases(phases.filter(p => p.id !== id));
-                toast.success('Fase eliminada');
-            };
-
-            const deleteSession = async (id) => {
-                if (!confirm('¿Eliminar esta sesión?')) return;
-                await api.delete(`/api/projects/${project.id}/sessions/${id}`);
-                setSessions(sessions.filter(s => s.id !== id));
-                toast.success('Sesión eliminada');
-            };
-
-            const deleteTask = async (id) => {
-                if (!confirm('¿Eliminar esta tarea?')) return;
-                await api.delete(`/api/projects/${project.id}/tasks/${id}`);
-                setTasks(tasks.filter(t => t.id !== id));
-                toast.success('Tarea eliminada');
-            };
-
-            const toggleTaskStatus = async (task) => {
-                const newStatus = task.status === 'completed' ? 'pending' : task.status === 'pending' ? 'in_progress' : 'completed';
-                await api.put(`/api/projects/${project.id}/tasks/${task.id}`, { status: newStatus });
-                const updated = await api.get(`/api/projects/${project.id}`);
-                setTasks(updated.tasks || []);
-            };
-
-            const filteredTasks = tasks.filter(t => {
-                if (taskFilter === 'pending') return t.status !== 'completed';
-                if (taskFilter === 'completed') return t.status === 'completed';
-                if (taskFilter === 'internal') return t.visibility === 'internal';
-                if (taskFilter === 'public') return t.visibility === 'public';
-                return true;
-            });
-
-            return (
-                <div>
-                    <button onClick={onBack} className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4">
-                        <Icon name="arrow_back" /> Volver
-                    </button>
-
-                    <div className="flex items-start justify-between mb-6">
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-800">{project.name}</h1>
-                            <p className="text-gray-500">{project.client}</p>
-                        </div>
-                    </div>
-
-                    <div className="flex gap-2 mb-6">
-                        {project.sharepoint ? <span className="flex items-center gap-1 px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-sm"><SharePointIcon className="w-4 h-4" />SharePoint</span> : <span className="px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-sm">SharePoint</span>}
-                        {project.planner ? <span className="flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm"><PlannerIcon className="w-4 h-4" />Planner</span> : <span className="px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-sm">Planner</span>}
-                        {project.teams ? <span className="flex items-center gap-1 px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm"><TeamsIcon className="w-4 h-4" />Teams</span> : <span className="px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-sm">Teams</span>}
-                    </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div className="lg:col-span-2 space-y-6">
-                            {/* Roadmap Card */}
-                            <Card className="p-5">
-                                <div className="flex items-center justify-between mb-4">
-                                    <h2 className="font-semibold flex items-center gap-2"><Icon name="rocket_launch" className="text-purple-600" />Roadmap</h2>
-                                    <div className="flex items-center gap-2">
-                                        <div className="flex border rounded-lg overflow-hidden">
-                                            <button onClick={() => setViewMode('timeline')} className={`px-3 py-1.5 text-xs ${viewMode === 'timeline' ? 'bg-purple-600 text-white' : 'hover:bg-gray-50'}`}><Icon name="timeline" className="text-sm" /></button>
-                                            <button onClick={() => setViewMode('kanban')} className={`px-3 py-1.5 text-xs border-l ${viewMode === 'kanban' ? 'bg-purple-600 text-white' : 'hover:bg-gray-50'}`}><Icon name="view_kanban" className="text-sm" /></button>
-                                        </div>
-                                        <button onClick={() => { setPhaseForm({ name: '', description: '', startDate: '', endDate: '' }); setEditingPhase(null); setShowPhaseForm(true); }} className="flex items-center gap-1 px-3 py-1.5 text-xs bg-purple-600 text-white rounded-lg hover:bg-purple-700">
-                                            <Icon name="add" className="text-sm" /> Fase
-                                        </button>
-                                        <button onClick={() => { setSessionForm({ title: '', date: '', time: '', type: 'online', phaseId: '' }); setEditingSession(null); setShowSessionForm(true); }} className="flex items-center gap-1 px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                                            <Icon name="add" className="text-sm" /> Sesión
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* Timeline View */}
-                                {viewMode === 'timeline' && (
-                                    <div className="space-y-4">
-                                        {phases.length === 0 && sessions.length === 0 ? (
-                                            <p className="text-gray-400 text-center py-8">Añade fases y sesiones para ver el roadmap</p>
-                                        ) : (
-                                            <>
-                                                {phases.map(phase => {
-                                                    const phaseSessions = sessions.filter(s => s.phaseId === phase.id);
-                                                    return (
-                                                        <div key={phase.id} className="border-l-4 border-purple-500 pl-4 py-2">
-                                                            <div className="flex items-center justify-between">
-                                                                <div>
-                                                                    <h3 className="font-medium">{phase.name}</h3>
-                                                                    {phase.startDate && phase.endDate && (
-                                                                        <p className="text-xs text-gray-500">{new Date(phase.startDate).toLocaleDateString('es-ES', {day: 'numeric', month: 'short', year: 'numeric'})} → {new Date(phase.endDate).toLocaleDateString('es-ES', {day: 'numeric', month: 'short', year: 'numeric'})}</p>
-                                                                    )}
-                                                                </div>
-                                                                <div className="flex gap-1">
-                                                                    <button onClick={() => editPhase(phase)} className="p-1 text-gray-400 hover:text-blue-500"><Icon name="edit" className="text-sm" /></button>
-                                                                    <button onClick={() => deletePhase(phase.id)} className="p-1 text-gray-400 hover:text-red-500"><Icon name="delete" className="text-sm" /></button>
-                                                                </div>
-                                                            </div>
-                                                            {phaseSessions.length > 0 && (
-                                                                <div className="mt-2 space-y-1">
-                                                                    {phaseSessions.map(s => (
-                                                                        <div key={s.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
-                                                                            <Icon name={s.type === 'online' ? 'videocam' : 'location_on'} className={`text-sm ${s.type === 'online' ? 'text-blue-500' : 'text-amber-500'}`} />
-                                                                            <span className="flex-1 text-sm">{s.title}</span>
-                                                                            <span className="text-xs text-gray-500">{s.date} {s.time}</span>
-                                                                            <button onClick={() => editSession(s)} className="text-gray-400 hover:text-blue-500"><Icon name="edit" className="text-xs" /></button>
-                                                                            <button onClick={() => deleteSession(s.id)} className="text-gray-400 hover:text-red-500"><Icon name="delete" className="text-xs" /></button>
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    );
-                                                })}
-                                                {/* Sessions without phase */}
-                                                {sessions.filter(s => !s.phaseId).length > 0 && (
-                                                    <div className="border-l-4 border-gray-300 pl-4 py-2">
-                                                        <h3 className="font-medium text-gray-500 mb-2">Sin fase asignada</h3>
-                                                        <div className="space-y-1">
-                                                            {sessions.filter(s => !s.phaseId).map(s => (
-                                                                <div key={s.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
-                                                                    <Icon name={s.type === 'online' ? 'videocam' : 'location_on'} className={`text-sm ${s.type === 'online' ? 'text-blue-500' : 'text-amber-500'}`} />
-                                                                    <span className="flex-1 text-sm">{s.title}</span>
-                                                                    <span className="text-xs text-gray-500">{s.date} {s.time}</span>
-                                                                    <button onClick={() => editSession(s)} className="text-gray-400 hover:text-blue-500"><Icon name="edit" className="text-xs" /></button>
-                                                                    <button onClick={() => deleteSession(s.id)} className="text-gray-400 hover:text-red-500"><Icon name="delete" className="text-xs" /></button>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </>
-                                        )}
-                                    </div>
-                                )}
-
-                                {/* Kanban View */}
-                                {viewMode === 'kanban' && (
-                                    <div className="grid grid-cols-3 gap-4">
-                                        {[{ id: 'todo', name: 'Por hacer', color: 'bg-gray-100' }, { id: 'doing', name: 'En curso', color: 'bg-amber-100' }, { id: 'done', name: 'Completado', color: 'bg-green-100' }].map(col => {
-                                            const getSessionStatus = (s) => {
-                                                const now = new Date();
-                                                const start = new Date(s.date + 'T' + (s.time || '00:00'));
-                                                const end = new Date(start.getTime() + 3600000);
-                                                if (now < start) return 'todo';
-                                                if (now >= start && now <= end) return 'doing';
-                                                return 'done';
-                                            };
-                                            const colSessions = sessions.filter(s => getSessionStatus(s) === col.id);
-                                            const colTasks = tasks.filter(t => (t.status === 'completed' ? 'done' : t.status === 'in_progress' ? 'doing' : 'todo') === col.id);
-                                            return (
-                                                <div key={col.id} className={`${col.color} rounded-xl p-3`}>
-                                                    <div className="font-semibold text-sm mb-3">{col.name} <span className="text-gray-400">({colSessions.length + colTasks.length})</span></div>
-                                                    <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                                                        {colSessions.map(s => (
-                                                            <div key={s.id} onClick={() => editSession(s)} className="bg-white p-2 rounded-lg shadow-sm cursor-pointer hover:shadow">
-                                                                <div className="flex items-center gap-2">
-                                                                    <Icon name={s.type === 'online' ? 'videocam' : 'location_on'} className={`text-sm ${s.type === 'online' ? 'text-blue-500' : 'text-amber-500'}`} />
-                                                                    <span className="text-sm font-medium">{s.title}</span>
-                                                                </div>
-                                                                <div className="text-xs text-gray-500 mt-1">{s.date}</div>
-                                                            </div>
-                                                        ))}
-                                                        {colTasks.map(t => (
-                                                            <div key={t.id} className="bg-white p-2 rounded-lg shadow-sm">
-                                                                <div className="flex items-center gap-2">
-                                                                    <button onClick={() => toggleTaskStatus(t)}><Icon name={t.status === 'completed' ? 'check_circle' : 'radio_button_unchecked'} className={`text-sm ${t.status === 'completed' ? 'text-green-500' : 'text-gray-300'}`} /></button>
-                                                                    <span className={`text-sm ${t.status === 'completed' ? 'line-through text-gray-400' : ''}`} onClick={() => editTask(t)}>{t.title}</span>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                            </Card>
-
-                            {/* Tasks Card */}
-                            <Card className="p-5">
-                                <div className="flex items-center justify-between mb-4">
-                                    <h2 className="font-semibold flex items-center gap-2"><Icon name="task_alt" className="text-green-600" />Tareas</h2>
-                                    <div className="flex items-center gap-2">
-                                        <select value={taskFilter} onChange={e => setTaskFilter(e.target.value)} className="text-xs border rounded px-2 py-1">
-                                            <option value="all">Todas</option>
-                                            <option value="pending">Pendientes</option>
-                                            <option value="completed">Completadas</option>
-                                            <option value="public">Públicas</option>
-                                            <option value="internal">Internas</option>
-                                        </select>
-                                        <button onClick={() => { setTaskForm({ title: '', description: '', dueDate: '', phaseId: '', visibility: 'public', assignedToType: '', priority: 'medium' }); setEditingTask(null); setShowTaskForm(true); }} className="text-sm text-green-600 hover:underline">+ Añadir</button>
-                                    </div>
-                                </div>
-                                {filteredTasks.length === 0 ? <p className="text-gray-400 text-center py-4">Sin tareas</p> : (
-                                    <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                                        {filteredTasks.map(task => (
-                                            <div key={task.id} className={`flex items-start gap-3 p-3 rounded-lg border ${task.status === 'completed' ? 'bg-gray-50 opacity-60' : task.priority === 'high' ? 'border-red-200 bg-red-50' : 'border-gray-100'}`}>
-                                                <button onClick={() => toggleTaskStatus(task)} className="mt-0.5"><Icon name={task.status === 'completed' ? 'check_circle' : task.status === 'in_progress' ? 'pending' : 'radio_button_unchecked'} className={task.status === 'completed' ? 'text-green-500' : task.status === 'in_progress' ? 'text-amber-500' : 'text-gray-300'} /></button>
-                                                <div className="flex-1">
-                                                    <div className={`font-medium text-sm ${task.status === 'completed' ? 'line-through text-gray-400' : ''}`}>{task.title}</div>
-                                                    <div className="flex flex-wrap gap-2 mt-1">
-                                                        {task.visibility === 'internal' && <span className="text-xs px-1.5 py-0.5 bg-gray-200 text-gray-600 rounded">Interna</span>}
-                                                        {task.visibility === 'public' && <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-600 rounded">Pública</span>}
-                                                        {task.dueDate && <span className={`text-xs ${new Date(task.dueDate) < new Date() && task.status !== 'completed' ? 'text-red-500' : 'text-gray-500'}`}>{new Date(task.dueDate).toLocaleDateString('es-ES', {day: 'numeric', month: 'short'})}</span>}
-                                                    </div>
-                                                </div>
-                                                <div className="flex gap-1">
-                                                    <button onClick={() => editTask(task)} className="text-gray-400 hover:text-blue-500"><Icon name="edit" className="text-sm" /></button>
-                                                    <button onClick={() => deleteTask(task.id)} className="text-gray-400 hover:text-red-500"><Icon name="delete" className="text-sm" /></button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </Card>
-                        </div>
-
-                        <div>
-                            <Card className="p-5">
-                                <h2 className="font-semibold mb-4 flex items-center gap-2"><Icon name="info" className="text-gray-500" />Detalles</h2>
-                                <div className="space-y-3 text-sm">
-                                    <div className="flex justify-between"><span className="text-gray-500">Estado</span><span className={`px-2 py-0.5 rounded-full text-xs ${project.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{project.status === 'active' ? 'Activo' : 'Inactivo'}</span></div>
-                                    <div className="flex justify-between"><span className="text-gray-500">Fases</span><span>{phases.length}</span></div>
-                                    <div className="flex justify-between"><span className="text-gray-500">Sesiones</span><span>{sessions.length}</span></div>
-                                    <div className="flex justify-between"><span className="text-gray-500">Tareas</span><span>{tasks.length}</span></div>
-                                    <div className="flex justify-between"><span className="text-gray-500">Creado</span><span>{new Date(project.createdAt).toLocaleDateString('es-ES')}</span></div>
-                                </div>
-                            </Card>
-                        </div>
-                    </div>
-
-                    {/* Phase Form Modal */}
-                    {showPhaseForm && (
-                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                            <Card className="p-6 max-w-md w-full mx-4">
-                                <div className="flex justify-between mb-4"><h2 className="text-lg font-bold">{editingPhase ? 'Editar fase' : 'Nueva fase'}</h2><button onClick={() => { setShowPhaseForm(false); setEditingPhase(null); }}><Icon name="close" /></button></div>
-                                <div className="space-y-4">
-                                    <div><label className="block text-sm font-medium mb-1">Nombre</label><input value={phaseForm.name} onChange={e => setPhaseForm({...phaseForm, name: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>
-                                    <div><label className="block text-sm font-medium mb-1">Descripción</label><textarea value={phaseForm.description} onChange={e => setPhaseForm({...phaseForm, description: e.target.value})} className="w-full px-3 py-2 border rounded-lg" rows="2" /></div>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div><label className="block text-sm font-medium mb-1">Fecha inicio</label><input type="date" value={phaseForm.startDate} onChange={e => setPhaseForm({...phaseForm, startDate: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm" /></div>
-                                        <div><label className="block text-sm font-medium mb-1">Fecha fin</label><input type="date" value={phaseForm.endDate} onChange={e => setPhaseForm({...phaseForm, endDate: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm" /></div>
-                                    </div>
-                                </div>
-                                <button onClick={savePhase} disabled={!phaseForm.name} className="w-full mt-6 py-2 bg-gradient-to-r from-pv-pink to-pv-purple text-white rounded-lg disabled:opacity-50">{editingPhase ? 'Guardar' : 'Crear fase'}</button>
-                            </Card>
-                        </div>
-                    )}
-
-                    {/* Session Form Modal */}
-                    {showSessionForm && (
-                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                            <Card className="p-6 max-w-md w-full mx-4">
-                                <div className="flex justify-between mb-4"><h2 className="text-lg font-bold">{editingSession ? 'Editar sesión' : 'Nueva sesión'}</h2><button onClick={() => { setShowSessionForm(false); setEditingSession(null); }}><Icon name="close" /></button></div>
-                                <div className="space-y-4">
-                                    <div><label className="block text-sm font-medium mb-1">Título</label><input value={sessionForm.title} onChange={e => setSessionForm({...sessionForm, title: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div><label className="block text-sm font-medium mb-1">Fecha</label><input type="date" value={sessionForm.date} onChange={e => setSessionForm({...sessionForm, date: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm" /></div>
-                                        <div><label className="block text-sm font-medium mb-1">Hora</label><input type="time" value={sessionForm.time} onChange={e => setSessionForm({...sessionForm, time: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm" /></div>
-                                    </div>
-                                    <div><label className="block text-sm font-medium mb-1">Tipo</label>
-                                        <div className="flex gap-2">
-                                            <button type="button" onClick={() => setSessionForm({...sessionForm, type: 'online'})} className={`flex-1 py-2 rounded-lg border text-sm ${sessionForm.type === 'online' ? 'border-blue-500 bg-blue-50 text-blue-700' : ''}`}>Online</button>
-                                            <button type="button" onClick={() => setSessionForm({...sessionForm, type: 'presencial'})} className={`flex-1 py-2 rounded-lg border text-sm ${sessionForm.type === 'presencial' ? 'border-amber-500 bg-amber-50 text-amber-700' : ''}`}>Presencial</button>
-                                        </div>
-                                    </div>
-                                    {phases.length > 0 && <div><label className="block text-sm font-medium mb-1">Fase</label><select value={sessionForm.phaseId} onChange={e => setSessionForm({...sessionForm, phaseId: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm"><option value="">Sin fase</option>{phases.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></div>}
-                                </div>
-                                <button onClick={saveSession} disabled={!sessionForm.title || !sessionForm.date} className="w-full mt-6 py-2 bg-gradient-to-r from-pv-pink to-pv-purple text-white rounded-lg disabled:opacity-50">{editingSession ? 'Guardar' : 'Crear sesión'}</button>
-                            </Card>
-                        </div>
-                    )}
-
-                    {/* Task Form Modal */}
-                    {showTaskForm && (
-                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                            <Card className="p-6 max-w-md w-full mx-4">
-                                <div className="flex justify-between mb-4"><h2 className="text-lg font-bold">{editingTask ? 'Editar tarea' : 'Nueva tarea'}</h2><button onClick={() => { setShowTaskForm(false); setEditingTask(null); }}><Icon name="close" /></button></div>
-                                <div className="space-y-4">
-                                    <div><label className="block text-sm font-medium mb-1">Título</label><input value={taskForm.title} onChange={e => setTaskForm({...taskForm, title: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>
-                                    <div><label className="block text-sm font-medium mb-1">Descripción</label><textarea value={taskForm.description} onChange={e => setTaskForm({...taskForm, description: e.target.value})} className="w-full px-3 py-2 border rounded-lg" rows="2" /></div>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div><label className="block text-sm font-medium mb-1">Fecha límite</label><input type="date" value={taskForm.dueDate} onChange={e => setTaskForm({...taskForm, dueDate: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm" /></div>
-                                        <div><label className="block text-sm font-medium mb-1">Prioridad</label><select value={taskForm.priority} onChange={e => setTaskForm({...taskForm, priority: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm"><option value="low">Baja</option><option value="medium">Media</option><option value="high">Alta</option></select></div>
-                                    </div>
-                                    <div><label className="block text-sm font-medium mb-1">Visibilidad</label>
-                                        <div className="flex gap-2">
-                                            <button type="button" onClick={() => setTaskForm({...taskForm, visibility: 'public'})} className={`flex-1 py-2 rounded-lg border text-sm ${taskForm.visibility === 'public' ? 'border-blue-500 bg-blue-50 text-blue-700' : ''}`}>Pública</button>
-                                            <button type="button" onClick={() => setTaskForm({...taskForm, visibility: 'internal'})} className={`flex-1 py-2 rounded-lg border text-sm ${taskForm.visibility === 'internal' ? 'border-gray-500 bg-gray-100 text-gray-700' : ''}`}>Interna</button>
-                                        </div>
-                                    </div>
-                                    {phases.length > 0 && <div><label className="block text-sm font-medium mb-1">Fase</label><select value={taskForm.phaseId} onChange={e => setTaskForm({...taskForm, phaseId: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm"><option value="">Sin fase</option>{phases.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></div>}
-                                    {editingTask && <div><label className="block text-sm font-medium mb-1">Estado</label><select value={taskForm.status} onChange={e => setTaskForm({...taskForm, status: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm"><option value="pending">Pendiente</option><option value="in_progress">En progreso</option><option value="completed">Completada</option></select></div>}
-                                </div>
-                                <button onClick={saveTask} disabled={!taskForm.title} className="w-full mt-6 py-2 bg-gradient-to-r from-pv-pink to-pv-purple text-white rounded-lg disabled:opacity-50">{editingTask ? 'Guardar' : 'Crear tarea'}</button>
-                            </Card>
-                        </div>
-                    )}
-                </div>
-            );
-        };
-
-        // Settings View
-        const SettingsView = ({ msConfig, setMsConfig }) => (
-            <div>
-                <h1 className="text-2xl font-bold text-gray-800 mb-6">Ajustes</h1>
-                <Card className="p-5">
-                    <h2 className="font-semibold mb-4">Configuración de Microsoft</h2>
-                    <div className="space-y-4">
-                        <div><label className="block text-sm font-medium mb-1">Site ID (SharePoint)</label><input value={msConfig.siteId} onChange={e => setMsConfig({...msConfig, siteId: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm" /></div>
-                        <div><label className="block text-sm font-medium mb-1">Group ID</label><input value={msConfig.groupId} onChange={e => setMsConfig({...msConfig, groupId: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm" /></div>
-                        <div><label className="block text-sm font-medium mb-1">Team ID</label><input value={msConfig.teamId} onChange={e => setMsConfig({...msConfig, teamId: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm" /></div>
-                    </div>
-                </Card>
-            </div>
-        );
-
-        // Main App
-        function App() {
-            const toast = useToast();
-            const [user, setUser] = useState(null);
-            const [loading, setLoading] = useState(true);
-            const [view, setView] = useState('dashboard');
-            const [projects, setProjects] = useState([]);
-            const [selected, setSelected] = useState(null);
-            const [msConfig, setMsConfig] = useState({ siteId: '', groupId: '', teamId: '' });
-
-            useEffect(() => {
-                api.get('/api/me').then(u => { setUser(u); loadProjects(); }).catch(() => setUser(null)).finally(() => setLoading(false));
-            }, []);
-
-            const loadProjects = () => api.get('/api/projects').then(setProjects);
-
-            if (loading) return <div className="min-h-screen flex items-center justify-center"><Logo className="w-16 h-16 animate-pulse" /></div>;
-            if (!user) return <LoginScreen />;
-
-            return (
-                <div className="min-h-screen flex">
-                    <Sidebar currentView={view} setCurrentView={v => { setView(v); setSelected(null); }} user={user} onLogout={() => location.href = '/auth/logout'} />
-                    <main className="flex-1 p-6 overflow-auto">
-                        {view === 'dashboard' && <DashboardView projects={projects} onSelectProject={(p) => { setSelected(p); setView('projects'); }} />}
-                        {view === 'projects' && !selected && <ProjectsView projects={projects} onRefresh={loadProjects} onSelect={setSelected} />}
-                        {view === 'projects' && selected && <ProjectDetail project={selected} onBack={() => setSelected(null)} toast={toast} onRefresh={() => { loadProjects(); api.get(`/api/projects/${selected.id}`).then(setSelected); }} msConfig={msConfig} />}
-                        {view === 'settings' && <SettingsView msConfig={msConfig} setMsConfig={setMsConfig} />}
-                    </main>
-                </div>
-            );
-        }
-
-        ReactDOM.render(<ToastProvider><App /></ToastProvider>, document.getElementById('root'));
-    </script>
 </body>
 </html>
