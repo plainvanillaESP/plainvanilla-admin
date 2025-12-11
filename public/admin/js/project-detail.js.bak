@@ -69,15 +69,6 @@ const ProjectDetailView = ({ projectId, onBack, onRefresh }) => {
     }
   };
 
-  
-  const handleUpdateTaskStatus = async (taskId, newStatus) => {
-    try {
-      await api.put(\`/api/projects/\${projectId}/tasks/\${taskId}\`, { status: newStatus });
-      toast.success('Estado actualizado');
-      loadProject();
-    } catch (e) { toast.error('Error al actualizar estado'); throw e; }
-  };
-
   const loadProject = async () => {
     try {
       const data = await api.get(`/api/projects/${projectId}`);
@@ -230,7 +221,6 @@ const ProjectDetailView = ({ projectId, onBack, onRefresh }) => {
                   onMoveSession={handleMoveSession}
                   onMoveTask={handleMoveTask}
                   onEditTask={t => { setEditingTask(t); setShowTaskModal(true); }}
-                  onUpdateTaskStatus={handleUpdateTaskStatus}
                 />
               )}
             </div>

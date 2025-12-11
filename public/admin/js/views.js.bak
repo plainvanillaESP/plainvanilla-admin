@@ -307,116 +307,92 @@ const TimelineView = ({ phases, sessions, tasks, onEditPhase, onEditSession, onD
 };
 
 // ============================================
-// KANBAN VIEW - With Drag & Drop (SortableJS)
+// KANBAN VIEW
 // ============================================
 
-const KanbanView = ({ phases, sessions, tasks, onEditSession, onEditTask, onUpdateTaskStatus }) => {
-  const columnsRef = useRef({});
-  const sortablesRef = useRef([]);
-  
+const KanbanView = ({ phases, sessions, tasks }) => {
   const columns = [
-    { id: 'todo', title: 'Por hacer', icon: 'radio_button_unchecked', color: 'gray', taskStatus: 'pending' },
-    { id: 'doing', title: 'En curso', icon: 'pending', color: 'amber', taskStatus: 'in_progress' },
-    { id: 'done', title: 'Completado', icon: 'check_circle', color: 'green', taskStatus: 'completed' }
+    { id: 'todo', title: 'Por hacer', icon: 'radio_button_unchecked', color: 'gray' },
+    { id: 'doing', title: 'En curso', icon: 'pending', color: 'amber' },
+    { id: 'done', title: 'Completado', icon: 'check_circle', color: 'green' }
   ];
   
   const getItemStatus = (item, type) => {
-    if (type === 'session') return getSessionStatus(item);
+    if (type === 'session') {
+      return getSessionStatus(item);
+    }
     if (item.status === 'completed') return 'done';
     if (item.status === 'in_progress') return 'doing';
     return 'todo';
   };
 
-  useEffect(() => {
-    if (!window.Sortable) return;
-    sortablesRef.current.forEach(s => s.destroy());
-    sortablesRef.current = [];
-    
-    columns.forEach(col => {
-      const container = columnsRef.current[col.id];
-      if (!container) return;
-      
-      const sortable = new window.Sortable(container, {
-        animation: 150,
-        group: 'kanban-tasks',
-        ghostClass: 'opacity-50',
-        chosenClass: 'shadow-lg',
-        filter: '.kanban-session',
-        onEnd: async (evt) => {
-          const taskId = evt.item.dataset.taskId;
-          const newColumnId = evt.to.dataset.columnId;
-          const oldColumnId = evt.from.dataset.columnId;
-          if (newColumnId === oldColumnId) return;
-          const newColumn = columns.find(c => c.id === newColumnId);
-          if (!newColumn || !taskId) return;
-          if (evt.from !== evt.to) evt.from.insertBefore(evt.item, evt.from.children[evt.oldIndex] || null);
-          if (onUpdateTaskStatus) {
-            try { await onUpdateTaskStatus(taskId, newColumn.taskStatus); }
-            catch (e) { console.error('Error updating task:', e); }
-          }
-        }
-      });
-      sortablesRef.current.push(sortable);
-    });
-    return () => { sortablesRef.current.forEach(s => s.destroy()); sortablesRef.current = []; };
-  }, [tasks, onUpdateTaskStatus]);
-
-  const getColumnCount = (columnId) => {
-    return sessions.filter(s => getItemStatus(s, 'session') === columnId).length + 
-           tasks.filter(t => getItemStatus(t, 'task') === columnId).length;
-  };
-
   return (
     <div className="grid grid-cols-3 gap-4">
-      {columns.map(col => {
-        const columnTasks = tasks.filter(t => getItemStatus(t, 'task') === col.id);
-        const columnSessions = sessions.filter(s => getItemStatus(s, 'session') === col.id);
-        return (
-          <div key={col.id} className="bg-apple-gray-50 rounded-xl p-3 min-h-[300px]">
-            <div className="flex items-center justify-between mb-3">
-              <div className={`flex items-center gap-2 text-${col.color}-600`}>
-                <Icon name={col.icon} /><span className="font-medium">{col.title}</span>
-              </div>
-              <span className={`text-sm px-2 py-0.5 rounded-full bg-${col.color}-100 text-${col.color}-600`}>{getColumnCount(col.id)}</span>
-            </div>
-            <div ref={el => columnsRef.current[col.id] = el} data-column-id={col.id} className="space-y-2 min-h-[200px]">
-              {columnSessions.map(s => {
+      {columns.map(col => (
+        <div key={col.id} className="bg-apple-gray-50 rounded-xl p-3">
+          <div className={`flex items-center gap-2 mb-3 text-${col.color}-600`}>
+            <Icon name={col.icon} />
+            <span className="font-medium">{col.title}</span>
+          </div>
+          
+          <div className="space-y-2">
+            {/* Sessions */}
+            {sessions
+              .filter(s => getItemStatus(s, 'session') === col.id)
+              .map(s => {
                 const teamsUrl = s.teamsMeetingUrl || s.teamsLink || s.teams_meeting_url;
                 return (
-                  <div key={s.id} className="kanban-session bg-white p-3 rounded-lg shadow-sm border border-apple-gray-100 cursor-pointer hover:shadow-md transition-shadow" onClick={() => onEditSession && onEditSession(s)}>
+                  <div key={s.id} className="bg-white p-3 rounded-lg shadow-sm border border-apple-gray-100">
                     <div className="flex items-center gap-2 mb-1">
-                      <Icon name={s.type === 'online' ? 'videocam' : 'place'} className="text-sm text-blue-500" />
-                      <span className="text-xs text-blue-500 uppercase font-medium">Sesión</span>
+                      <Icon 
+                        name={s.type === 'online' ? 'videocam' : 'place'} 
+                        className="text-sm text-blue-500" 
+                      />
+                      <span className="text-sm text-blue-500 uppercase font-medium">Sesion</span>
                     </div>
                     <div className="font-medium text-apple-gray-600 text-sm">{s.title}</div>
-                    <div className="text-xs text-apple-gray-400 mt-1">{formatDate(s.date)} {s.time}</div>
-                    {s.type === 'online' && teamsUrl && (<a href={teamsUrl} target="_blank" rel="noopener" onClick={e => e.stopPropagation()} className="mt-2 flex items-center gap-1 text-xs text-purple-600 hover:text-purple-800"><Icon name="videocam" className="text-xs" /> Unirse</a>)}
+                    <div className="text-sm text-apple-gray-400 mt-1">
+                      {formatDate(s.date)} {s.time}
+                    </div>
+                    {s.type === 'online' && teamsUrl && (
+                      <a 
+                        href={teamsUrl} 
+                        target="_blank" 
+                        rel="noopener" 
+                        className="mt-2 flex items-center gap-1 text-sm text-purple-600 hover:text-purple-800"
+                      >
+                        
+                        Unirse a Teams
+                      </a>
+                    )}
                   </div>
                 );
               })}
-              {columnTasks.map(t => (
-                <div key={t.id} data-task-id={t.id} className="kanban-task bg-white p-3 rounded-lg shadow-sm border border-apple-gray-100 cursor-grab hover:shadow-md transition-shadow active:cursor-grabbing" onClick={() => onEditTask && onEditTask(t)}>
+            
+            {/* Tasks */}
+            {tasks
+              .filter(t => getItemStatus(t, 'task') === col.id)
+              .map(t => (
+                <div key={t.id} className="bg-white p-3 rounded-lg shadow-sm border border-apple-gray-100">
                   <div className="flex items-center gap-2 mb-1">
-                    <Icon name="drag_indicator" className="text-xs text-apple-gray-300" />
                     <Icon name="task" className="text-sm text-purple-500" />
-                    <span className="text-xs text-purple-500 uppercase font-medium">Tarea</span>
+                    <span className="text-sm text-purple-500 uppercase font-medium">Tarea</span>
                     {t.priority === 'high' && <Badge color="red">!</Badge>}
                   </div>
-                  <div className={`font-medium text-sm ${t.status === 'completed' ? 'text-apple-gray-400 line-through' : 'text-apple-gray-600'}`}>{t.title}</div>
-                  {t.dueDate && <div className="text-xs text-apple-gray-400 mt-1">{formatDate(t.dueDate)}</div>}
-                  {t.assignedTo && (<div className="flex -space-x-1 mt-2">{(Array.isArray(t.assignedTo) ? t.assignedTo : [t.assignedTo]).filter(p => p).slice(0, 3).map((person, idx) => {const initials = person.name ? person.name.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase() : '?';return (<div key={idx} className="w-6 h-6 rounded-full border-2 border-white bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-medium overflow-hidden" title={person.name || person.email} style={{zIndex: 10 - idx}}>{person.photo ? <img src={person.photo} className="w-full h-full object-cover rounded-full" /> : initials}</div>);})}</div>)}
+                  <div className="font-medium text-apple-gray-600 text-sm">{t.title}</div>
+                  {t.dueDate && (
+                    <div className="text-sm text-apple-gray-400 mt-1">
+                      {formatDate(t.dueDate)}
+                    </div>
+                  )}
                 </div>
               ))}
-              {columnTasks.length === 0 && columnSessions.length === 0 && (<div className="text-center py-8 text-apple-gray-300 text-sm"><Icon name="inbox" className="text-2xl mb-1" /><div>Sin elementos</div></div>)}
-            </div>
           </div>
-        );
-      })}
+        </div>
+      ))}
     </div>
   );
 };
-
-
 
 // ============================================
 // CALENDAR VIEW
