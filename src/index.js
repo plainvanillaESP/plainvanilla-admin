@@ -293,7 +293,7 @@ app.put('/api/projects/:id/phases/reorder', requireAuth, async (req, res) => {
     
     for (const item of order) {
       await db.query(
-        'UPDATE phases SET "order" = $1 WHERE id = $2',
+        'UPDATE phases SET sort_order = $1 WHERE id = $2',
         [item.order, item.id]
       );
     }
@@ -310,7 +310,7 @@ app.put('/api/projects/:id/sessions/:sessionId/move', requireAuth, async (req, r
   try {
     const { phaseId, order } = req.body;
     await db.query(
-      'UPDATE sessions SET phase_id = $1, "order" = $2 WHERE id = $3',
+      'UPDATE sessions SET phase_id = $1, sort_order = $2 WHERE id = $3',
       [phaseId || null, order || 0, req.params.sessionId]
     );
     res.json({ success: true });
@@ -325,7 +325,7 @@ app.put('/api/projects/:id/tasks/:taskId/move', requireAuth, async (req, res) =>
   try {
     const { phaseId, order } = req.body;
     await db.query(
-      'UPDATE tasks SET phase_id = $1, "order" = $2 WHERE id = $3',
+      'UPDATE tasks SET phase_id = $1, sort_order = $2 WHERE id = $3',
       [phaseId || null, order || 0, req.params.taskId]
     );
     res.json({ success: true });
