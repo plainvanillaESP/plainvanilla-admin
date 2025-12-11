@@ -669,14 +669,16 @@ async function createDefaultPlannerBuckets(accessToken, planId) {
   return results;
 }
 
-async function setupFullM365Project(accessToken, projectName, projectDescription, teamEmails) {
+async function setupFullM365Project(accessToken, projectName, clientName, projectDescription, teamEmails) {
   projectDescription = projectDescription || "";
   teamEmails = teamEmails || [];
+  clientName = clientName || "";
   const results = { success: false, steps: {} };
   
   try {
-    const mailNickname = projectName.toLowerCase().replace(/[^a-z0-9]/g, "").substring(0, 20);
-    const group = await createGroup(accessToken, "PV - " + projectName, mailNickname, projectDescription);
+    const groupName = clientName ? "PV - " + clientName + " - " + projectName : "PV - " + projectName;
+    const mailNickname = (clientName + projectName).toLowerCase().replace(/[^a-z0-9]/g, "").substring(0, 20);
+    const group = await createGroup(accessToken, groupName, mailNickname, projectDescription);
     results.steps.group = { success: true, data: group };
     
     await new Promise(resolve => setTimeout(resolve, 5000));

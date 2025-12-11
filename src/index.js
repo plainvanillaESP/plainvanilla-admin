@@ -219,6 +219,7 @@ app.post('/api/projects', requireAuth, async (req, res) => {
         const m365Result = await graph.setupFullM365Project(
           req.session.user.accessToken,
           name,
+          client,
           description || "",
           ["hola@plainvanilla.ai"] // Equipo PV por defecto
         );
