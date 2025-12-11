@@ -196,8 +196,8 @@ async function getSession(sessionId) {
 
 async function createTask(projectId, data) {
   const result = await pool.query(`
-    INSERT INTO tasks (project_id, phase_id, title, description, due_date, visibility, assigned_to_type, assigned_to_email, assigned_to_name, priority, created_by)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *
+    INSERT INTO tasks (project_id, phase_id, title, description, due_date, visibility, assigned_to_type, assigned_to_email, assigned_to_name, assigned_to_photo, priority, created_by)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *
   `, [projectId, data.phaseId || null, data.title, data.description || '', data.dueDate || null,
       data.visibility || 'public', data.assignedToType || null, data.assignedToEmail || data.assignedTo?.email || null, 
       data.assignedToName || data.assignedTo?.name || null, data.assignedToPhoto || data.assignedTo?.photo || null, data.priority || 'medium', data.createdBy]);
