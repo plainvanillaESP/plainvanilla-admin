@@ -16,7 +16,7 @@ const {
 // TIMELINE VIEW
 // ============================================
 
-const TimelineView = ({ phases, sessions, tasks, onEditPhase, onEditSession, onDeleteSession, onReorderPhases, onMoveSession, onMoveTask }) => {
+const TimelineView = ({ phases, sessions, tasks, onEditPhase, onEditSession, onDeleteSession, onReorderPhases, onMoveSession, onMoveTask, onEditTask }) => {
   const [expandedPhases, setExpandedPhases] = useState(new Set(phases.map(p => p.id)));
   const phasesContainerRef = useRef(null);
   

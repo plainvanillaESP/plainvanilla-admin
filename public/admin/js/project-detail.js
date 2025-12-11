@@ -220,6 +220,7 @@ const ProjectDetailView = ({ projectId, onBack, onRefresh }) => {
                   onReorderPhases={handleReorderPhases}
                   onMoveSession={handleMoveSession}
                   onMoveTask={handleMoveTask}
+                  onEditTask={t => { setEditingTask(t); setShowTaskModal(true); }}
                 />
               )}
             </div>
