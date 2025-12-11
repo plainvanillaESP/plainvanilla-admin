@@ -169,17 +169,17 @@ const TimelineView = ({ phases, sessions, tasks, onEditPhase, onEditSession, onD
                 {phaseTasks.map(t => (
                   <div 
                     key={t.id} 
-                    className="bg-white/80 rounded-lg p-3 flex items-center gap-3"
+                    className="bg-white/80 rounded-lg p-3 flex items-center gap-3 border-l-4 border-blue-400"
                   >
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      t.status === 'completed' ? 'bg-green-100' : 
-                      t.status === 'in_progress' ? 'bg-amber-100' : 'bg-gray-100'
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                      t.status === 'completed' ? 'bg-blue-100' : 
+                      t.status === 'in_progress' ? 'bg-orange-100' : 'bg-slate-100'
                     }`}>
                       <Icon 
-                        name="task" 
+                        name={`${t.status === 'completed' ? 'check_box' : 'check_box_outline_blank'}`}
                         className={`text-sm ${
-                          t.status === 'completed' ? 'text-green-600' : 
-                          t.status === 'in_progress' ? 'text-amber-600' : 'text-gray-400'
+                          t.status === 'completed' ? 'text-blue-600' : 
+                          t.status === 'in_progress' ? 'text-orange-600' : 'text-slate-400'
                         }`} 
                       />
                     </div>
