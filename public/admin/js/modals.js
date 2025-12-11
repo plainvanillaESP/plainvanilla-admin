@@ -15,9 +15,20 @@ const {
 // PHASE MODAL
 // ============================================
 
+const phaseColorOptions = [
+  { id: 'purple', bg: 'bg-purple-200', text: 'text-purple-700', label: 'Morado' },
+  { id: 'blue', bg: 'bg-blue-200', text: 'text-blue-700', label: 'Azul' },
+  { id: 'green', bg: 'bg-green-200', text: 'text-green-700', label: 'Verde' },
+  { id: 'amber', bg: 'bg-amber-200', text: 'text-amber-700', label: 'Ámbar' },
+  { id: 'pink', bg: 'bg-pink-200', text: 'text-pink-700', label: 'Rosa' },
+  { id: 'teal', bg: 'bg-teal-200', text: 'text-teal-700', label: 'Turquesa' },
+  { id: 'indigo', bg: 'bg-indigo-200', text: 'text-indigo-700', label: 'Índigo' },
+  { id: 'red', bg: 'bg-red-200', text: 'text-red-700', label: 'Rojo' },
+];
+
 const PhaseModal = ({ isOpen, onClose, phase, projectId, phases, onSave }) => {
   const [form, setForm] = useState({ 
-    name: '', description: '', startDate: '', endDate: '', order: phases.length 
+    name: '', description: '', startDate: '', endDate: '', order: phases.length, color: 'purple'
   });
   const [dateError, setDateError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -30,10 +41,11 @@ const PhaseModal = ({ isOpen, onClose, phase, projectId, phases, onSave }) => {
         description: phase.description || '',
         startDate: phase.startDate || '',
         endDate: phase.endDate || '',
-        order: phase.order ?? 0
+        order: phase.order ?? 0,
+        color: phase.color || 'purple'
       });
     } else {
-      setForm({ name: '', description: '', startDate: '', endDate: '', order: phases.length });
+      setForm({ name: '', description: '', startDate: '', endDate: '', order: phases.length, color: 'purple' });
     }
     setDateError('');
   }, [phase, isOpen]);
@@ -115,6 +127,21 @@ const PhaseModal = ({ isOpen, onClose, phase, projectId, phases, onSave }) => {
           onChange={e => setForm({ ...form, description: e.target.value })}
           rows={2}
         />
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Color</label>
+          <div className="flex flex-wrap gap-2">
+            {phaseColorOptions.map(c => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => setForm({ ...form, color: c.id })}
+                className={`w-8 h-8 rounded-full ${c.bg} ${form.color === c.id ? 'ring-2 ring-offset-2 ring-purple-500' : ''} hover:scale-110 transition-transform`}
+                title={c.label}
+              />
+            ))}
+          </div>
+        </div>
         
         <div className="grid grid-cols-2 gap-4">
           <Input
