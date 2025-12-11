@@ -128,22 +128,22 @@ const DashboardView = ({ projects, onSelectProject }) => {
       {/* Metrics */}
       <div className="grid grid-cols-4 gap-5 mb-8">
         <Card>
-          <p className="text-xs text-apple-gray-400 uppercase tracking-wide mb-1">Proyectos activos</p>
+          <p className="text-sm text-apple-gray-400 uppercase tracking-wide mb-1">Proyectos activos</p>
           <p className="text-2xl font-semibold text-apple-gray-600">{metrics.activeProjects}</p>
         </Card>
         
         <Card>
-          <p className="text-xs text-apple-gray-400 uppercase tracking-wide mb-1">Facturación</p>
+          <p className="text-sm text-apple-gray-400 uppercase tracking-wide mb-1">Facturación</p>
           <p className="text-2xl font-semibold text-apple-gray-600">{formatCurrency(metrics.totalRevenue)}</p>
         </Card>
         
         <Card>
-          <p className="text-xs text-apple-gray-400 uppercase tracking-wide mb-1">Próximas sesiones</p>
+          <p className="text-sm text-apple-gray-400 uppercase tracking-wide mb-1">Próximas sesiones</p>
           <p className="text-2xl font-semibold text-apple-gray-600">{metrics.upcomingSessions.length}</p>
         </Card>
         
         <Card>
-          <p className="text-xs text-apple-gray-400 uppercase tracking-wide mb-1">Progreso medio</p>
+          <p className="text-sm text-apple-gray-400 uppercase tracking-wide mb-1">Progreso medio</p>
           <p className="text-2xl font-semibold text-apple-gray-600">{metrics.avgProgress}%</p>
         </Card>
       </div>
@@ -155,7 +155,7 @@ const DashboardView = ({ projects, onSelectProject }) => {
           <Card>
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-sm font-medium text-apple-gray-600">Facturación mensual</h3>
-              <span className="text-xs text-apple-gray-400">{new Date().getFullYear()}</span>
+              <span className="text-sm text-apple-gray-400">{new Date().getFullYear()}</span>
             </div>
             <div className="h-44 flex items-end gap-2">
               {monthlyRevenue.map((value, i) => (
@@ -167,7 +167,7 @@ const DashboardView = ({ projects, onSelectProject }) => {
                       title={formatCurrency(value)}
                     />
                   </div>
-                  <span className="text-[10px] text-apple-gray-400">{months[i]}</span>
+                  <span className="text-sm text-apple-gray-400">{months[i]}</span>
                 </div>
               ))}
             </div>
@@ -177,7 +177,7 @@ const DashboardView = ({ projects, onSelectProject }) => {
           <Card padding={false}>
             <div className="px-6 py-4 border-b border-apple-gray-100 flex items-center justify-between">
               <h3 className="text-sm font-medium text-apple-gray-600">Proyectos</h3>
-              <span className="text-xs text-apple-gray-400">{sortedProjects.length}</span>
+              <span className="text-sm text-apple-gray-400">{sortedProjects.length}</span>
             </div>
             <div className="divide-y divide-apple-gray-100">
               {sortedProjects.map(p => (
@@ -186,16 +186,16 @@ const DashboardView = ({ projects, onSelectProject }) => {
                   onClick={() => onSelectProject(p.id)} 
                   className="flex items-center gap-4 px-6 py-4 hover:bg-apple-gray-50 cursor-pointer transition-colors"
                 >
-                  <div className="w-9 h-9 rounded-lg pv-gradient flex items-center justify-center text-white text-xs font-medium">
+                  <div className="w-9 h-9 rounded-lg pv-gradient flex items-center justify-center text-white text-sm font-medium">
                     {p.client?.charAt(0)?.toUpperCase() || 'P'}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-apple-gray-600 truncate">{p.name}</p>
-                    <p className="text-xs text-apple-gray-400 truncate">{p.client}</p>
+                    <p className="text-sm text-apple-gray-400 truncate">{p.client}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-medium text-apple-gray-600">{formatCurrency(p.revenue.total)}</p>
-                    <p className="text-xs text-apple-gray-400">
+                    <p className="text-sm text-apple-gray-400">
                       {p.start ? formatDate(p.start) : 'Sin fechas'}
                     </p>
                   </div>
@@ -222,9 +222,9 @@ const DashboardView = ({ projects, onSelectProject }) => {
               {metrics.upcomingSessions.map(s => (
                 <div key={s.id} className="p-3 bg-apple-gray-50 rounded-lg">
                   <p className="text-sm font-medium text-apple-gray-600">{s.title}</p>
-                  <p className="text-xs text-apple-gray-400 mt-0.5">{s.projectName}</p>
+                  <p className="text-sm text-apple-gray-400 mt-0.5">{s.projectName}</p>
                   <div className="flex items-center gap-2 mt-2">
-                    <span className="text-xs text-apple-gray-500">
+                    <span className="text-sm text-apple-gray-500">
                       {formatDate(s.date)} · {s.time}
                     </span>
                     {s.type === 'online' && <Badge color="blue">Online</Badge>}
@@ -232,7 +232,7 @@ const DashboardView = ({ projects, onSelectProject }) => {
                 </div>
               ))}
               {metrics.upcomingSessions.length === 0 && (
-                <p className="py-6 text-center text-xs text-apple-gray-400">
+                <p className="py-6 text-center text-sm text-apple-gray-400">
                   No hay sesiones próximas
                 </p>
               )}
@@ -248,14 +248,14 @@ const DashboardView = ({ projects, onSelectProject }) => {
               {metrics.urgentTasks.map(t => (
                 <div key={t.id} className="p-3 bg-red-50 rounded-lg border border-red-100">
                   <p className="text-sm font-medium text-apple-gray-600">{t.title}</p>
-                  <p className="text-xs text-apple-gray-400 mt-0.5">{t.projectName}</p>
+                  <p className="text-sm text-apple-gray-400 mt-0.5">{t.projectName}</p>
                   {t.dueDate && (
-                    <p className="text-xs text-apple-red mt-1">Vence: {formatDate(t.dueDate)}</p>
+                    <p className="text-sm text-apple-red mt-1">Vence: {formatDate(t.dueDate)}</p>
                   )}
                 </div>
               ))}
               {metrics.urgentTasks.length === 0 && (
-                <p className="py-6 text-center text-xs text-apple-gray-400">
+                <p className="py-6 text-center text-sm text-apple-gray-400">
                   No hay tareas urgentes
                 </p>
               )}

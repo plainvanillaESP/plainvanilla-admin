@@ -92,9 +92,9 @@ const ProjectsView = ({ projects, onSelectProject, onRefresh }) => {
                 </div>
                 
                 <h3 className="text-sm font-medium text-apple-gray-600 mb-0.5">{p.name}</h3>
-                <p className="text-xs text-apple-gray-400 mb-4">{p.client}</p>
+                <p className="text-sm text-apple-gray-400 mb-4">{p.client}</p>
                 
-                <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center justify-between text-sm">
                   <span className="text-apple-gray-400">
                     {start ? formatDate(start) : 'Sin fechas'}
                   </span>
@@ -103,7 +103,7 @@ const ProjectsView = ({ projects, onSelectProject, onRefresh }) => {
                   </span>
                 </div>
                 
-                <div className="flex items-center gap-4 mt-4 pt-4 border-t border-apple-gray-100 text-[11px] text-apple-gray-400">
+                <div className="flex items-center gap-4 mt-4 pt-4 border-t border-apple-gray-100 text-sm text-apple-gray-400">
                   <span>{(p.phases || []).length} fases</span>
                   <span>{(p.sessions || []).length} sesiones</span>
                   <span>{(p.tasks || []).length} tareas</span>
@@ -121,7 +121,7 @@ const ProjectsView = ({ projects, onSelectProject, onRefresh }) => {
               <div className="w-10 h-10 rounded-lg bg-apple-gray-100 flex items-center justify-center mx-auto mb-2">
                 <Icon name="add" className="text-apple-gray-400 text-xl" />
               </div>
-              <span className="text-xs text-apple-gray-400">Nuevo proyecto</span>
+              <span className="text-sm text-apple-gray-400">Nuevo proyecto</span>
             </div>
           </div>
         </div>

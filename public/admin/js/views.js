@@ -124,7 +124,7 @@ const TimelineView = ({ phases, sessions, tasks, onEditPhase, onEditSession }) =
                         
                         <div className="flex-1">
                           <div className="font-medium text-gray-800">{s.title}</div>
-                          <div className="text-xs text-gray-400">
+                          <div className="text-sm text-gray-400">
                             {formatDate(s.date)} {s.time}
                           </div>
                         </div>
@@ -193,10 +193,10 @@ const KanbanView = ({ phases, sessions, tasks }) => {
                       name={s.type === 'online' ? 'videocam' : 'place'} 
                       className="text-sm text-blue-500" 
                     />
-                    <span className="text-xs text-blue-500 uppercase font-medium">SesiÃ³n</span>
+                    <span className="text-sm text-blue-500 uppercase font-medium">SesiÃ³n</span>
                   </div>
                   <div className="font-medium text-gray-800 text-sm">{s.title}</div>
-                  <div className="text-xs text-gray-400 mt-1">
+                  <div className="text-sm text-gray-400 mt-1">
                     {formatDate(s.date)} {s.time}
                   </div>
                 </div>
@@ -209,12 +209,12 @@ const KanbanView = ({ phases, sessions, tasks }) => {
                 <div key={t.id} className="bg-white p-3 rounded-lg shadow-sm border border-gray-100">
                   <div className="flex items-center gap-2 mb-1">
                     <Icon name="task" className="text-sm text-purple-500" />
-                    <span className="text-xs text-purple-500 uppercase font-medium">Tarea</span>
+                    <span className="text-sm text-purple-500 uppercase font-medium">Tarea</span>
                     {t.priority === 'high' && <Badge color="red">!</Badge>}
                   </div>
                   <div className="font-medium text-gray-800 text-sm">{t.title}</div>
                   {t.dueDate && (
-                    <div className="text-xs text-gray-400 mt-1">{formatDate(t.dueDate)}</div>
+                    <div className="text-sm text-gray-400 mt-1">{formatDate(t.dueDate)}</div>
                   )}
                 </div>
               ))}
@@ -285,7 +285,7 @@ const CalendarView = ({ phases, sessions }) => {
       {/* Day Headers */}
       <div className="grid grid-cols-7 gap-1 mb-2">
         {days.map(d => (
-          <div key={d} className="text-center text-xs text-gray-400 font-medium py-2">
+          <div key={d} className="text-center text-sm text-gray-400 font-medium py-2">
             {d}
           </div>
         ))}
@@ -311,7 +311,7 @@ const CalendarView = ({ phases, sessions }) => {
                 isToday ? 'ring-2 ring-pv-purple' : ''
               } hover:bg-gray-50 cursor-pointer`}
             >
-              <div className="text-xs text-gray-600 mb-1">{day}</div>
+              <div className="text-sm text-gray-600 mb-1">{day}</div>
               <div className="space-y-0.5">
                 {dayPhases.slice(0, 2).map((p, j) => (
                   <div 
@@ -417,7 +417,7 @@ const GanttView = ({ phases, sessions }) => {
           <div style={{ width: labelWidth }} className="text-sm font-medium text-gray-500">
             Fase
           </div>
-          <div className="flex-1 flex justify-between text-xs text-gray-400">
+          <div className="flex-1 flex justify-between text-sm text-gray-400">
             <span>{formatDate(allDates[0])}</span>
             <span>{formatDate(allDates[allDates.length - 1])}</span>
           </div>
@@ -456,7 +456,7 @@ const GanttView = ({ phases, sessions }) => {
                     className={`absolute h-full rounded-lg ${bgColor} flex items-center px-2`} 
                     style={{ left, width: Math.max(width, 20) }}
                   >
-                    <span className={`text-xs font-medium ${textColor} truncate`}>
+                    <span className={`text-sm font-medium ${textColor} truncate`}>
                       {getPhaseProgress(phase.id, sessions, [])}%
                     </span>
                   </div>

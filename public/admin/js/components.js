@@ -99,7 +99,7 @@ const Button = ({
   };
   
   const sizes = {
-    small: "text-xs px-3 py-1.5",
+    small: "text-sm px-3 py-1.5",
     default: "text-sm px-4 py-2",
     large: "text-sm px-5 py-2.5"
   };
@@ -179,7 +179,7 @@ const Badge = ({ children, color = "gray" }) => {
   };
   
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${colors[color]}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-sm font-medium ${colors[color]}`}>
       {children}
     </span>
   );
@@ -202,7 +202,7 @@ const Input = ({
 }) => (
   <div className={className}>
     {label && (
-      <label className="block text-xs font-medium text-apple-gray-500 mb-1.5 uppercase tracking-wide">
+      <label className="block text-sm font-medium text-apple-gray-500 mb-1.5 uppercase tracking-wide">
         {label}{required && <span className="text-apple-red ml-0.5">*</span>}
       </label>
     )}
@@ -222,7 +222,7 @@ const Input = ({
       `}
       {...props}
     />
-    {error && <p className="mt-1 text-xs text-apple-red">{error}</p>}
+    {error && <p className="mt-1 text-sm text-apple-red">{error}</p>}
   </div>
 );
 
@@ -233,7 +233,7 @@ const Input = ({
 const Select = ({ label, value, onChange, options, placeholder, required, className = "" }) => (
   <div className={className}>
     {label && (
-      <label className="block text-xs font-medium text-apple-gray-500 mb-1.5 uppercase tracking-wide">
+      <label className="block text-sm font-medium text-apple-gray-500 mb-1.5 uppercase tracking-wide">
         {label}{required && <span className="text-apple-red ml-0.5">*</span>}
       </label>
     )}
@@ -267,7 +267,7 @@ const Select = ({ label, value, onChange, options, placeholder, required, classN
 const Textarea = ({ label, value, onChange, placeholder, rows = 3, required, className = "" }) => (
   <div className={className}>
     {label && (
-      <label className="block text-xs font-medium text-apple-gray-500 mb-1.5 uppercase tracking-wide">
+      <label className="block text-sm font-medium text-apple-gray-500 mb-1.5 uppercase tracking-wide">
         {label}{required && <span className="text-apple-red ml-0.5">*</span>}
       </label>
     )}

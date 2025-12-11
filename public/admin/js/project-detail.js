@@ -188,14 +188,14 @@ const ProjectDetailView = ({ projectId, onBack, onRefresh }) => {
             <div className="px-6 py-4 border-b border-apple-gray-100 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <h2 className="text-sm font-medium text-apple-gray-600">Tareas</h2>
-                <span className="text-xs text-apple-gray-400">({tasks.length})</span>
+                <span className="text-sm text-apple-gray-400">({tasks.length})</span>
               </div>
               
               <div className="flex items-center gap-3">
                 <select 
                   value={taskFilter} 
                   onChange={e => setTaskFilter(e.target.value)} 
-                  className="text-xs px-2 py-1.5 bg-apple-gray-50 border border-apple-gray-200 rounded-lg focus:outline-none"
+                  className="text-sm px-2 py-1.5 bg-apple-gray-50 border border-apple-gray-200 rounded-lg focus:outline-none"
                 >
                   <option value="all">Todas</option>
                   <option value="pending">Pendientes</option>
@@ -222,7 +222,7 @@ const ProjectDetailView = ({ projectId, onBack, onRefresh }) => {
                     t.status === 'completed' ? 'bg-apple-green border-apple-green' : 
                     t.status === 'in_progress' ? 'border-apple-orange' : 'border-apple-gray-300'
                   }`}>
-                    {t.status === 'completed' && <Icon name="check" className="text-white text-[10px]" />}
+                    {t.status === 'completed' && <Icon name="check" className="text-white text-sm" />}
                   </div>
                   
                   <div className="flex-1 min-w-0">
@@ -230,7 +230,7 @@ const ProjectDetailView = ({ projectId, onBack, onRefresh }) => {
                       {t.title}
                     </p>
                     <div className="flex items-center gap-2 mt-1">
-                      {t.dueDate && <span className="text-[11px] text-apple-gray-400">{formatDate(t.dueDate)}</span>}
+                      {t.dueDate && <span className="text-sm text-apple-gray-400">{formatDate(t.dueDate)}</span>}
                       <Badge color={t.visibility === 'public' ? 'blue' : 'gray'}>
                         {t.visibility === 'public' ? 'Público' : 'Interno'}
                       </Badge>
@@ -346,7 +346,7 @@ const BudgetCard = ({ project, onSave }) => {
     <Card>
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-medium text-apple-gray-600">Presupuesto</h3>
-        <button onClick={() => setEditing(!editing)} className="text-xs text-apple-blue hover:underline">
+        <button onClick={() => setEditing(!editing)} className="text-sm text-apple-blue hover:underline">
           {editing ? 'Cancelar' : 'Editar'}
         </button>
       </div>
@@ -354,7 +354,7 @@ const BudgetCard = ({ project, onSave }) => {
       {editing ? (
         <div className="space-y-4">
           <div>
-            <label className="block text-xs text-apple-gray-400 mb-1">Precio base</label>
+            <label className="block text-sm text-apple-gray-400 mb-1">Precio base</label>
             <div className="flex items-center gap-2">
               <input 
                 type="number" 
@@ -377,7 +377,7 @@ const BudgetCard = ({ project, onSave }) => {
           </label>
           
           <div>
-            <label className="block text-xs text-apple-gray-400 mb-2">Add-ons</label>
+            <label className="block text-sm text-apple-gray-400 mb-2">Add-ons</label>
             {addOns.map(a => (
               <div key={a.id} className="flex items-center justify-between py-2 border-b border-apple-gray-100">
                 <span className="text-sm text-apple-gray-600">{a.name}</span>

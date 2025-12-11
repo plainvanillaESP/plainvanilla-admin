@@ -37,7 +37,7 @@ const LoginView = () => (
           Continuar con Microsoft
         </a>
         
-        <p className="text-xs text-apple-gray-400 text-center mt-6">
+        <p className="text-sm text-apple-gray-400 text-center mt-6">
           Usa tu cuenta @plainvanilla.ai
         </p>
       </Card>
@@ -63,7 +63,7 @@ const Sidebar = ({ user, currentView, onNavigate, onLogout }) => {
           <Logo className="w-8 h-8" />
           <div>
             <h1 className="text-sm font-semibold text-apple-gray-600">Plain Vanilla</h1>
-            <p className="text-[11px] text-apple-gray-400">Administración</p>
+            <p className="text-sm text-apple-gray-400">Administración</p>
           </div>
         </div>
       </div>
@@ -94,12 +94,12 @@ const Sidebar = ({ user, currentView, onNavigate, onLogout }) => {
       {/* User */}
       <div className="p-3 border-t border-apple-gray-100">
         <div className="flex items-center gap-3 p-2">
-          <div className="w-9 h-9 rounded-full pv-gradient flex items-center justify-center text-white text-xs font-medium">
+          <div className="w-9 h-9 rounded-full pv-gradient flex items-center justify-center text-white text-sm font-medium">
             {user?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-apple-gray-600 truncate">{user?.name || 'Usuario'}</p>
-            <p className="text-xs text-apple-gray-400 truncate">{user?.email || ''}</p>
+            <p className="text-sm text-apple-gray-400 truncate">{user?.email || ''}</p>
           </div>
           <button 
             onClick={onLogout}
