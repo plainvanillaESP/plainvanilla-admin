@@ -72,7 +72,7 @@ const ProjectDetailView = ({ projectId, onBack, onRefresh }) => {
   
   const handleUpdateTaskStatus = async (taskId, newStatus) => {
     try {
-      await api.put(\`/api/projects/\${projectId}/tasks/\${taskId}\`, { status: newStatus });
+      await api.put(`/api/projects/${projectId}/tasks/${taskId}`, { status: newStatus });
       toast.success('Estado actualizado');
       loadProject();
     } catch (e) { toast.error('Error al actualizar estado'); throw e; }
