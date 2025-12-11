@@ -102,8 +102,9 @@ const TimelineView = ({ phases, sessions, tasks, onEditPhase, onEditSession, onD
         const phaseTasks = tasks.filter(t => t.phaseId === phase.id);
         const progress = getPhaseProgress(phase.id, sessions, tasks);
         const isExpanded = expandedPhases.has(phase.id);
-        const bgColor = phaseColors[i % phaseColors.length];
-        const textColor = phaseTextColors[i % phaseTextColors.length];
+        const phaseColorSet = window.getPhaseColors ? window.getPhaseColors(phase, i) : { bg: phaseColors[i % phaseColors.length], text: phaseTextColors[i % phaseTextColors.length] };
+        const bgColor = phaseColorSet.bg;
+        const textColor = phaseColorSet.text;
         
         return (
           <div key={phase.id} data-phase-id={phase.id} className={`${bgColor} rounded-xl overflow-hidden`}>

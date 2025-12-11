@@ -356,3 +356,31 @@ window.validateDateNotTooOld = validateDateNotTooOld;
 window.validateEndAfterStart = validateEndAfterStart;
 window.validateEmail = validateEmail;
 window.generateSlug = generateSlug;
+
+// ============================================
+// PHASE COLOR HELPERS
+// ============================================
+
+const phaseColorMap = {
+  purple: { bg: 'bg-purple-200', text: 'text-purple-700', border: 'border-purple-300' },
+  blue: { bg: 'bg-blue-200', text: 'text-blue-700', border: 'border-blue-300' },
+  green: { bg: 'bg-green-200', text: 'text-green-700', border: 'border-green-300' },
+  amber: { bg: 'bg-amber-200', text: 'text-amber-700', border: 'border-amber-300' },
+  pink: { bg: 'bg-pink-200', text: 'text-pink-700', border: 'border-pink-300' },
+  teal: { bg: 'bg-teal-200', text: 'text-teal-700', border: 'border-teal-300' },
+  indigo: { bg: 'bg-indigo-200', text: 'text-indigo-700', border: 'border-indigo-300' },
+  red: { bg: 'bg-red-200', text: 'text-red-700', border: 'border-red-300' }
+};
+
+const getPhaseColors = (phase, fallbackIndex = 0) => {
+  if (phase.color && phaseColorMap[phase.color]) {
+    return phaseColorMap[phase.color];
+  }
+  // Fallback to index-based color
+  const colors = ['purple', 'blue', 'green', 'amber', 'pink', 'teal', 'indigo', 'red'];
+  const colorKey = colors[fallbackIndex % colors.length];
+  return phaseColorMap[colorKey];
+};
+
+window.phaseColorMap = phaseColorMap;
+window.getPhaseColors = getPhaseColors;
