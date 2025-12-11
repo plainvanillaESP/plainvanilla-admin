@@ -37,6 +37,38 @@ const TimelineView = ({ phases, sessions, tasks, onEditPhase, onEditSession, onD
       return () => sortable.destroy();
     }
   }, [phases, onReorderPhases]);
+
+  // Drag and drop para sesiones y tareas dentro de fases
+  useEffect(() => {
+    if (!window.Sortable || !onMoveSession) return;
+    
+    const containers = document.querySelectorAll('.phase-items-container');
+    const sortables = [];
+    
+    containers.forEach(container => {
+      const sortable = new window.Sortable(container, {
+        animation: 150,
+        group: 'phase-items',
+        handle: '.item-drag-handle',
+        ghostClass: 'opacity-50',
+        onEnd: (evt) => {
+          const itemId = evt.item.dataset.itemId;
+          const itemType = evt.item.dataset.itemType;
+          const newPhaseId = evt.to.dataset.phaseId;
+          const newIndex = evt.newIndex;
+          
+          if (itemType === 'session' && onMoveSession) {
+            onMoveSession(itemId, newPhaseId, newIndex);
+          } else if (itemType === 'task' && onMoveTask) {
+            onMoveTask(itemId, newPhaseId, newIndex);
+          }
+        }
+      });
+      sortables.push(sortable);
+    });
+    
+    return () => sortables.forEach(s => s.destroy());
+  }, [phases, sessions, tasks, expandedPhases, onMoveSession, onMoveTask]);
   
   const togglePhase = (id) => {
     const newSet = new Set(expandedPhases);
