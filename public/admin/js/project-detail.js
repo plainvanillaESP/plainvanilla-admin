@@ -366,7 +366,7 @@ const ProjectDetailView = ({ projectId, onBack, onRefresh }) => {
 
 const BudgetCard = ({ project, onSave }) => {
   const [editing, setEditing] = useState(false);
-  const [pricing, setPricing] = useState(project.pricing || { basePrice: 0, vatExempt: false, vatRate: 21 });
+  const [pricing, setPricing] = useState({ basePrice: project.pricing?.basePrice || '', vatExempt: project.pricing?.vatExempt || false, vatRate: project.pricing?.vatRate || 21 });
   const [addOns, setAddOns] = useState(project.addOns || []);
   const [newAddOn, setNewAddOn] = useState({ name: '', price: '' });
   const [saving, setSaving] = useState(false);
@@ -412,7 +412,7 @@ const BudgetCard = ({ project, onSave }) => {
               <input 
                 type="number" 
                 value={pricing.basePrice} 
-                onChange={e => setPricing({ ...pricing, basePrice: parseFloat(e.target.value) || 0 })} 
+                onChange={e => setPricing({ ...pricing, basePrice: e.target.value === '' ? '' : parseFloat(e.target.value) })} 
                 className="flex-1 px-3 py-2 text-sm bg-apple-gray-50 border border-apple-gray-200 rounded-lg focus:outline-none focus:border-apple-blue" 
               />
               <span className="text-apple-gray-400 text-sm">€</span>
