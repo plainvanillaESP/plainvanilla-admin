@@ -127,7 +127,7 @@ const App = () => {
 
   const loadInitialData = async () => {
     try {
-      const userData = await window.api.get('/auth/me');
+      const userData = await window.api.get('/api/me');
       setUser(userData);
       const projectsData = await window.api.get('/api/projects');
       setProjects(projectsData);
