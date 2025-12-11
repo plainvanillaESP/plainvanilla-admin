@@ -176,6 +176,7 @@ const SessionModal = ({ isOpen, onClose, session, projectId, phases, onSave }) =
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
+  const [notifyAttendees, setNotifyAttendees] = useState(false);
   
   const toast = useToast();
 
@@ -201,6 +202,7 @@ const SessionModal = ({ isOpen, onClose, session, projectId, phases, onSave }) =
     }
     setSearchQuery('');
     setSearchResults([]);
+    setNotifyAttendees(false);
   }, [session, isOpen, phases]);
 
   const handleSearch = async (query) => {
@@ -384,6 +386,19 @@ const SessionModal = ({ isOpen, onClose, session, projectId, phases, onSave }) =
             />
           )}
           
+          {/* Checkbox notificar cambios - solo al editar */}
+          {session && form.type === 'online' && attendees.length > 0 && (
+            <label className="flex items-center gap-2 cursor-pointer p-3 bg-blue-50 rounded-lg">
+              <input
+                type="checkbox"
+                checked={notifyAttendees}
+                onChange={e => setNotifyAttendees(e.target.checked)}
+                className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+              />
+              <span className="text-sm text-gray-700">Notificar cambios a los asistentes</span>
+            </label>
+          )}
+
           <Select
             label="Fase"
             value={form.phaseId}
