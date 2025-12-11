@@ -384,6 +384,51 @@ const ProjectDetailView = ({ projectId, onBack, onRefresh }) => {
       {window.M365SetupModal && (
         <window.M365SetupModal isOpen={showM365Modal} onClose={() => setShowM365Modal(false)} project={project} onSave={loadProject} />
       )}
+      
+      {/* Delete Confirmation Modal */}
+      <window.Modal 
+        isOpen={showDeleteConfirm} 
+        onClose={() => { setShowDeleteConfirm(false); setDeleteConfirmText(''); }}
+        title="Eliminar proyecto"
+      >
+        <div className="space-y-4">
+          <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
+            <div className="flex items-start gap-3">
+              <Icon name="warning" className="text-red-500 text-xl" />
+              <div>
+                <p className="font-medium text-red-700">Esta acción no se puede deshacer</p>
+                <p className="text-sm text-red-600 mt-1">Se eliminará el proyecto y todos sus recursos de Microsoft 365 (Teams, SharePoint, Planner).</p>
+              </div>
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-sm text-apple-gray-500 mb-2">
+              Escribe <strong>{project.name}</strong> para confirmar:
+            </label>
+            <input
+              type="text"
+              value={deleteConfirmText}
+              onChange={e => setDeleteConfirmText(e.target.value)}
+              placeholder={project.name}
+              className="w-full px-3 py-2 border border-apple-gray-200 rounded-lg focus:outline-none focus:border-red-500"
+            />
+          </div>
+          
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="secondary" onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(''); }}>
+              Cancelar
+            </Button>
+            <button
+              onClick={handleDeleteProject}
+              disabled={deleteConfirmText !== project.name || deleting}
+              className="px-4 py-2 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {deleting ? 'Eliminando...' : 'Eliminar proyecto'}
+            </button>
+          </div>
+        </div>
+      </window.Modal>
     </div>
   );
 };

@@ -15,6 +15,9 @@ const ProjectsView = ({ projects, onSelectProject, onRefresh }) => {
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ name: '', client: '', description: '', basePrice: '', setupM365: true });
   const [loading, setLoading] = useState(false);
+  const [deleteProject, setDeleteProject] = useState(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
   const toast = useToast();
 
   const handleCreate = async () => {
@@ -41,6 +44,21 @@ const ProjectsView = ({ projects, onSelectProject, onRefresh }) => {
       toast.error(e.error || 'Error al crear');
     }
     setLoading(false);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteProject || deleteConfirmText !== deleteProject.name) return;
+    setDeleting(true);
+    try {
+      await api.delete(\`/api/projects/\${deleteProject.id}\`);
+      toast.success('Proyecto eliminado');
+      setDeleteProject(null);
+      setDeleteConfirmText('');
+      onRefresh();
+    } catch (e) {
+      toast.error('Error al eliminar');
+    }
+    setDeleting(false);
   };
 
   return (
@@ -92,6 +110,13 @@ const ProjectsView = ({ projects, onSelectProject, onRefresh }) => {
                     {p.sharepoint && <window.SharePointIcon className="w-4 h-4 text-teal-600" />}
                     {p.teams && <window.TeamsIcon className="w-4 h-4 text-purple-600" />}
                     {p.planner && <window.PlannerIcon className="w-4 h-4 text-green-600" />}
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setDeleteProject(p); }}
+                      className="p-1 text-apple-gray-300 hover:text-red-500 hover:bg-red-50 rounded transition-colors ml-1"
+                      title="Eliminar"
+                    >
+                      <Icon name="delete" className="text-sm" />
+                    </button>
                   </div>
                 </div>
                 
@@ -200,6 +225,53 @@ const ProjectsView = ({ projects, onSelectProject, onRefresh }) => {
             </div>
           </div>
         </div>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal 
+        isOpen={!!deleteProject} 
+        onClose={() => { setDeleteProject(null); setDeleteConfirmText(''); }}
+        title="Eliminar proyecto"
+      >
+        {deleteProject && (
+          <div className="space-y-4">
+            <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
+              <div className="flex items-start gap-3">
+                <Icon name="warning" className="text-red-500 text-xl" />
+                <div>
+                  <p className="font-medium text-red-700">Esta acción no se puede deshacer</p>
+                  <p className="text-sm text-red-600 mt-1">Se eliminará el proyecto "{deleteProject.name}" y todos sus recursos de Microsoft 365.</p>
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm text-apple-gray-500 mb-2">
+                Escribe <strong>{deleteProject.name}</strong> para confirmar:
+              </label>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={e => setDeleteConfirmText(e.target.value)}
+                placeholder={deleteProject.name}
+                className="w-full px-3 py-2 border border-apple-gray-200 rounded-lg focus:outline-none focus:border-red-500"
+              />
+            </div>
+            
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="secondary" onClick={() => { setDeleteProject(null); setDeleteConfirmText(''); }}>
+                Cancelar
+              </Button>
+              <button
+                onClick={handleDelete}
+                disabled={deleteConfirmText !== deleteProject.name || deleting}
+                className="px-4 py-2 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {deleting ? 'Eliminando...' : 'Eliminar proyecto'}
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );
