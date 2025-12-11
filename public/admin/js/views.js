@@ -132,7 +132,6 @@ const TimelineView = ({ phases, sessions, tasks, onEditPhase, onEditSession, onD
                           </div>
                         </div>
                         
-                        {/* Action Buttons */}
                         <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
                           {s.type === 'online' && teamsUrl && (
                             <>
@@ -146,9 +145,8 @@ const TimelineView = ({ phases, sessions, tasks, onEditPhase, onEditSession, onD
                               </a>
                               <button
                                 onClick={() => {
-                                  navigator.clipboard.writeText(teamsUrl).then(() => {
-                                    if (window.showToast) window.showToast('Link copiado al portapapeles', 'success');
-                                  });
+                                  navigator.clipboard.writeText(teamsUrl);
+                                  if (window.showToast) window.showToast('Link copiado', 'success');
                                 }}
                                 className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
                                 title="Copiar link"
@@ -268,7 +266,7 @@ const KanbanView = ({ phases, sessions, tasks }) => {
                         rel="noopener" 
                         className="mt-2 flex items-center gap-1 text-sm text-purple-600 hover:text-purple-800"
                       >
-                        
+                        <window.TeamsIcon className="w-4 h-4" />
                         Unirse a Teams
                       </a>
                     )}
@@ -430,7 +428,6 @@ const GanttView = ({ phases, sessions }) => {
         setContainerWidth(entries[0].contentRect.width);
       }
     });
-                                }}
     
     if (containerRef.current) {
       resizeObserver.observe(containerRef.current);
