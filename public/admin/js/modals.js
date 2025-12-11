@@ -425,7 +425,7 @@ const SessionModal = ({ isOpen, onClose, session, projectId, phases, onSave }) =
                 type="text"
                 value={searchQuery}
                 onChange={e => handleSearch(e.target.value)}
-                placeholder="Buscar por nombre o email..." autoComplete="off"
+                placeholder="Buscar por nombre o email..." autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck="false" autoComplete="off"
                 className="w-full px-3 py-2 text-sm bg-apple-gray-50 border border-apple-gray-200 rounded-lg focus:outline-none focus:bg-white focus:border-apple-blue"
               />
               {searching && (

@@ -656,20 +656,26 @@ app.get('/api/contacts/search', requireAuth, async (req, res) => {
     
     // 2. People (contactos frecuentes)
     try {
-      const people = await graph.searchPeople(token, query);
+      const people = await graph.searchUsers(token, query);
       people.forEach(p => {
-        const email = p.scoredEmailAddresses?.[0]?.address;
+        const email = p.mail;
         if (email) addContact(p.displayName, email, 'people');
       });
     } catch (e) { console.error('People search error:', e.message); }
     
     // 3. Directorio de usuarios
     try {
-      const users = await graph.listUsers(token, query);
+      const users = await graph.getMyContacts(token, query);
       users.forEach(u => {
-        if (u.mail) addContact(u.displayName, u.mail, 'directory');
+        if (u.email) addContact(u.name, u.email, 'directory');
       });
     } catch (e) { console.error('Directory search error:', e.message); }
+    
+    // 4. Contactos de emails recibidos/enviados
+    try {
+      const mailContacts = await graph.searchMailContacts(token, query);
+      mailContacts.forEach(c => addContact(c.name, c.email, "mail"));
+    } catch (e) { console.error("Mail contacts error:", e.message); }
     
     // Filtrar localmente por query
     const filtered = query.length >= 2 

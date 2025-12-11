@@ -434,6 +434,50 @@ async function createGroup(accessToken, displayName, mailNickname, description =
   return await client.api('/groups').post(group);
 }
 
+async function searchMailContacts(accessToken, query) {
+  const client = getClient(accessToken);
+  const contacts = new Map();
+  try {
+    // Buscar en mensajes recibidos
+    const received = await client.api("/me/messages")
+      .select("from")
+      .top(100)
+      .orderby("receivedDateTime desc")
+      .get();
+    received.value.forEach(m => {
+      if (m.from?.emailAddress?.address) {
+        const email = m.from.emailAddress.address.toLowerCase();
+        if (!contacts.has(email)) {
+          contacts.set(email, { name: m.from.emailAddress.name || email, email });
+        }
+      }
+    });
+  } catch (e) { console.error("Mail search error:", e.message); }
+  try {
+    // Buscar en mensajes enviados
+    const sent = await client.api("/me/mailFolders/sentitems/messages")
+      .select("toRecipients")
+      .top(50)
+      .orderby("sentDateTime desc")
+      .get();
+    sent.value.forEach(m => {
+      m.toRecipients?.forEach(r => {
+        if (r.emailAddress?.address) {
+          const email = r.emailAddress.address.toLowerCase();
+          if (!contacts.has(email)) {
+            contacts.set(email, { name: r.emailAddress.name || email, email });
+          }
+        }
+      });
+    });
+  } catch (e) { console.error("Sent mail search error:", e.message); }
+  const results = Array.from(contacts.values());
+  if (query) {
+    return results.filter(c => c.name.toLowerCase().includes(query) || c.email.toLowerCase().includes(query));
+  }
+  return results;
+}
+
 module.exports = {
   getClient,
   // Usuario
@@ -473,5 +517,6 @@ module.exports = {
   listTeamMembers,
   // Grupos
   listMyGroups,
-  createGroup
+  createGroup,
+  searchMailContacts
 };
