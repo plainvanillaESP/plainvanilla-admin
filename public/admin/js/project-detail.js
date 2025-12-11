@@ -193,8 +193,6 @@ const ProjectDetailView = ({ projectId, onBack, onRefresh }) => {
                   onEditPhase={p => { setEditingPhase(p); setShowPhaseModal(true); }}
                   onEditSession={s => { setEditingSession(s); setShowSessionModal(true); }}
                   onDeleteSession={handleDeleteSession}
-                  onDeleteSession={handleDeleteSession}
-                  onDeleteSession={handleDeleteSession}
                 />
               )}
             </div>
