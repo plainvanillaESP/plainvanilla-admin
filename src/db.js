@@ -129,6 +129,7 @@ async function updatePhase(phaseId, updates) {
   if (updates.endDate !== undefined) { fields.push(`end_date = $${i}`); values.push(updates.endDate); i++; }
   if (updates.status !== undefined) { fields.push(`status = $${i}`); values.push(updates.status); i++; }
   if (updates.order !== undefined) { fields.push(`sort_order = $${i}`); values.push(updates.order); i++; }
+  if (updates.color !== undefined) { fields.push(`color = $${i}`); values.push(updates.color); i++; }
   if (updates.calendarEventId !== undefined) { fields.push(`calendar_event_id = $${i}`); values.push(updates.calendarEventId); i++; }
   
   if (fields.length === 0) return null;
@@ -172,6 +173,7 @@ async function updateSession(sessionId, updates) {
   if (updates.location !== undefined) { fields.push(`location = $${i}`); values.push(updates.location); i++; }
   if (updates.phaseId !== undefined) { fields.push(`phase_id = $${i}`); values.push(updates.phaseId); i++; }
   if (updates.teamsMeetingUrl !== undefined) { fields.push(`teams_meeting_url = $${i}`); values.push(updates.teamsMeetingUrl); i++; }
+  if (updates.color !== undefined) { fields.push(`color = $${i}`); values.push(updates.color); i++; }
   if (updates.calendarEventId !== undefined) { fields.push(`calendar_event_id = $${i}`); values.push(updates.calendarEventId); i++; }
   
   if (fields.length === 0) return null;
