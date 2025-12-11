@@ -133,16 +133,26 @@ const TimelineView = ({ phases, sessions, tasks, onEditPhase, onEditSession }) =
                         </div>
                         
                         {s.type === 'online' && teamsUrl && (
-                          <a 
-                            href={teamsUrl} 
-                            target="_blank" 
-                            rel="noopener" 
-                            onClick={e => e.stopPropagation()} 
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg text-sm font-medium transition-colors"
-                          >
-                            
-                            Unirse
-                          </a>
+                          <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                            <a 
+                              href={teamsUrl} 
+                              target="_blank" 
+                              rel="noopener"
+                              className="px-3 py-1.5 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg text-sm font-medium transition-colors"
+                            >
+                              Unirse
+                            </a>
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(teamsUrl);
+                                alert('Link copiado');
+                              }}
+                              className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                              title="Copiar link"
+                            >
+                              <Icon name="content_copy" className="text-sm" />
+                            </button>
+                          </div>
                         )}
                       </div>
                     );
