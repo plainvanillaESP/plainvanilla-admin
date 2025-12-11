@@ -11,7 +11,7 @@ const api = {
   get: async (url) => {
     const r = await fetch(url, { credentials: 'include' });
     if (!r.ok) {
-      const error = await r.json().catch(() => ({ error: 'Error de conexión' }));
+      const error = await r.json().catch(() => ({ error: 'Error de conexiÃ³n' }));
       throw error;
     }
     return r.json();
@@ -25,7 +25,7 @@ const api = {
       credentials: 'include'
     });
     if (!r.ok) {
-      const error = await r.json().catch(() => ({ error: 'Error de conexión' }));
+      const error = await r.json().catch(() => ({ error: 'Error de conexiÃ³n' }));
       throw error;
     }
     return r.json();
@@ -39,7 +39,7 @@ const api = {
       credentials: 'include'
     });
     if (!r.ok) {
-      const error = await r.json().catch(() => ({ error: 'Error de conexión' }));
+      const error = await r.json().catch(() => ({ error: 'Error de conexiÃ³n' }));
       throw error;
     }
     return r.json();
@@ -48,7 +48,7 @@ const api = {
   delete: async (url) => {
     const r = await fetch(url, { method: 'DELETE', credentials: 'include' });
     if (!r.ok) {
-      const error = await r.json().catch(() => ({ error: 'Error de conexión' }));
+      const error = await r.json().catch(() => ({ error: 'Error de conexiÃ³n' }));
       throw error;
     }
     return r.json();
@@ -84,7 +84,7 @@ const formatTime = (timeStr) => {
   return timeStr.substring(0, 5);
 };
 
-// Get relative date (hoy, mañana, hace 2 días, etc)
+// Get relative date (hoy, maÃ±ana, hace 2 dÃ­as, etc)
 const getRelativeDate = (dateStr) => {
   if (!dateStr) return '-';
   const date = new Date(dateStr);
@@ -93,10 +93,10 @@ const getRelativeDate = (dateStr) => {
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   
   if (diffDays === 0) return 'Hoy';
-  if (diffDays === 1) return 'Mañana';
+  if (diffDays === 1) return 'MaÃ±ana';
   if (diffDays === -1) return 'Ayer';
-  if (diffDays > 1 && diffDays <= 7) return `En ${diffDays} días`;
-  if (diffDays < -1 && diffDays >= -7) return `Hace ${Math.abs(diffDays)} días`;
+  if (diffDays > 1 && diffDays <= 7) return `En ${diffDays} dÃ­as`;
+  if (diffDays < -1 && diffDays >= -7) return `Hace ${Math.abs(diffDays)} dÃ­as`;
   return formatDate(dateStr);
 };
 
@@ -315,12 +315,12 @@ const validateEmail = (email) => {
 const generateSlug = (text) => {
   return text
     .toLowerCase()
-    .replace(/[áàäâ]/g, 'a')
-    .replace(/[éèëê]/g, 'e')
-    .replace(/[íìïî]/g, 'i')
-    .replace(/[óòöô]/g, 'o')
-    .replace(/[úùüû]/g, 'u')
-    .replace(/ñ/g, 'n')
+    .replace(/[Ã¡Ã Ã¤Ã¢]/g, 'a')
+    .replace(/[Ã©Ã¨Ã«Ãª]/g, 'e')
+    .replace(/[Ã­Ã¬Ã¯Ã®]/g, 'i')
+    .replace(/[Ã³Ã²Ã¶Ã´]/g, 'o')
+    .replace(/[ÃºÃ¹Ã¼Ã»]/g, 'u')
+    .replace(/Ã±/g, 'n')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
 };

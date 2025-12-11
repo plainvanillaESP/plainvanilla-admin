@@ -1,16 +1,11 @@
 // ============================================
-// PLAIN VANILLA ADMIN - PROJECT DETAIL
-// Diseño Apple-style: limpio, elegante, minimalista
+// PLAIN VANILLA - PROJECT DETAIL
+// Apple-style: minimal, clean, elegant
 // ============================================
 
 const { useState, useEffect } = React;
-
-// Get components and utilities from window
 const { Icon, Card, Button, Badge, Spinner, EmptyState } = window;
-const { 
-  api, formatDate, formatCurrency, calculateProjectRevenue, 
-  getPhaseProgress, useToast 
-} = window;
+const { api, formatDate, formatCurrency, calculateProjectRevenue, getPhaseProgress, useToast } = window;
 
 // ============================================
 // PROJECT DETAIL VIEW
@@ -22,14 +17,14 @@ const ProjectDetailView = ({ projectId, onBack, onRefresh }) => {
   const [activeTab, setActiveTab] = useState('timeline');
   const [taskFilter, setTaskFilter] = useState('all');
   
-  // Modal states
+  // Modals
   const [showPhaseModal, setShowPhaseModal] = useState(false);
   const [showSessionModal, setShowSessionModal] = useState(false);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showClientAccessModal, setShowClientAccessModal] = useState(false);
   const [showM365Modal, setShowM365Modal] = useState(false);
   
-  // Editing states
+  // Editing
   const [editingPhase, setEditingPhase] = useState(null);
   const [editingSession, setEditingSession] = useState(null);
   const [editingTask, setEditingTask] = useState(null);
@@ -41,30 +36,25 @@ const ProjectDetailView = ({ projectId, onBack, onRefresh }) => {
       const data = await api.get(`/api/projects/${projectId}`);
       setProject(data);
     } catch (e) {
-      toast.error('Error al cargar proyecto');
+      toast.error('Error al cargar');
     }
     setLoading(false);
   };
 
-  useEffect(() => {
-    loadProject();
-  }, [projectId]);
+  useEffect(() => { loadProject(); }, [projectId]);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Spinner size="lg" />
+        <Spinner size="large" />
       </div>
     );
   }
 
   if (!project) {
     return (
-      <div className="p-8 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
-          <Icon name="folder_off" className="text-3xl text-gray-400" />
-        </div>
-        <p className="text-gray-500">Proyecto no encontrado</p>
+      <div className="p-8 text-center text-apple-gray-400">
+        Proyecto no encontrado
       </div>
     );
   }
@@ -84,7 +74,6 @@ const ProjectDetailView = ({ projectId, onBack, onRefresh }) => {
     return true;
   });
 
-  // Get view component based on active tab
   const ViewComponent = {
     timeline: window.TimelineView,
     kanban: window.KanbanView,
@@ -93,140 +82,90 @@ const ProjectDetailView = ({ projectId, onBack, onRefresh }) => {
   }[activeTab];
 
   const tabs = [
-    { id: 'timeline', icon: 'timeline', label: 'Timeline' },
-    { id: 'kanban', icon: 'view_kanban', label: 'Kanban' },
-    { id: 'calendar', icon: 'calendar_month', label: 'Calendario' },
-    { id: 'gantt', icon: 'bar_chart', label: 'Gantt' }
+    { id: 'timeline', icon: 'timeline' },
+    { id: 'kanban', icon: 'view_kanban' },
+    { id: 'calendar', icon: 'calendar_month' },
+    { id: 'gantt', icon: 'bar_chart' }
   ];
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
+    <div className="p-8 animate-fadeIn">
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
-        <button 
-          onClick={onBack} 
-          className="
-            p-2.5 rounded-xl
-            text-gray-500 hover:text-gray-700
-            hover:bg-gray-100
-            transition-all duration-200
-          "
-        >
-          <Icon name="arrow_back" />
+        <button onClick={onBack} className="p-2 text-apple-gray-400 hover:text-apple-gray-600 hover:bg-apple-gray-100 rounded-lg transition-colors">
+          <Icon name="arrow_back" className="text-lg" />
         </button>
         
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">{project.name}</h1>
-            <Badge color={project.status === 'active' ? 'green' : 'gray'} size="md">
+            <h1 className="text-xl font-semibold text-apple-gray-600 tracking-tight">{project.name}</h1>
+            <Badge color={project.status === 'active' ? 'green' : 'gray'}>
               {project.status === 'active' ? 'Activo' : 'Inactivo'}
             </Badge>
           </div>
-          <p className="text-gray-500 mt-0.5">{project.client}</p>
+          <p className="text-sm text-apple-gray-400 mt-0.5">{project.client}</p>
         </div>
         
         <div className="flex items-center gap-2">
-          {/* M365 Links */}
           {project.sharepoint && (
-            <a 
-              href={project.sharepoint.folderUrl} 
-              target="_blank" 
-              rel="noopener" 
-              className="p-2.5 rounded-xl bg-teal-50 hover:bg-teal-100 transition-colors" 
-              title="SharePoint"
-            >
+            <a href={project.sharepoint.folderUrl} target="_blank" rel="noopener" className="p-2 hover:bg-teal-50 rounded-lg" title="SharePoint">
               <window.SharePointIcon className="w-5 h-5 text-teal-600" />
             </a>
           )}
           {project.teams && (
-            <a 
-              href={project.teams.channelUrl} 
-              target="_blank" 
-              rel="noopener" 
-              className="p-2.5 rounded-xl bg-purple-50 hover:bg-purple-100 transition-colors" 
-              title="Teams"
-            >
+            <a href={project.teams.channelUrl} target="_blank" rel="noopener" className="p-2 hover:bg-purple-50 rounded-lg" title="Teams">
               <window.TeamsIcon className="w-5 h-5 text-purple-600" />
             </a>
           )}
           {project.planner && (
-            <a 
-              href="https://tasks.office.com/" 
-              target="_blank" 
-              rel="noopener" 
-              className="p-2.5 rounded-xl bg-green-50 hover:bg-green-100 transition-colors" 
-              title="Planner"
-            >
+            <a href="https://tasks.office.com/" target="_blank" rel="noopener" className="p-2 hover:bg-green-50 rounded-lg" title="Planner">
               <window.PlannerIcon className="w-5 h-5 text-green-600" />
             </a>
           )}
           
-          <div className="w-px h-8 bg-gray-200 mx-2" />
+          <div className="w-px h-6 bg-apple-gray-200 mx-2" />
           
-          <Button variant="outline" size="md" onClick={() => setShowM365Modal(true)} icon="settings">
-            Microsoft 365
+          <Button variant="secondary" size="small" onClick={() => setShowM365Modal(true)}>
+            <Icon name="settings" className="text-base" />
+            M365
           </Button>
-          
-          <Button variant="soft" size="md" onClick={() => setShowClientAccessModal(true)} icon="person_add">
-            Acceso cliente
+          <Button variant="secondary" size="small" onClick={() => setShowClientAccessModal(true)}>
+            <Icon name="person_add" className="text-base" />
+            Acceso
           </Button>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Roadmap & Tasks */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Roadmap Card */}
-          <Card className="overflow-hidden" hover={false}>
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-pv-pink/10 to-pv-purple/10 flex items-center justify-center">
-                  <Icon name="route" className="text-pv-purple text-lg" />
-                </div>
-                <h2 className="font-semibold text-gray-900">Roadmap</h2>
-              </div>
+      {/* Content */}
+      <div className="grid grid-cols-3 gap-6">
+        {/* Left Column */}
+        <div className="col-span-2 space-y-6">
+          {/* Roadmap */}
+          <Card padding={false}>
+            <div className="px-6 py-4 border-b border-apple-gray-100 flex items-center justify-between">
+              <h2 className="text-sm font-medium text-apple-gray-600">Roadmap</h2>
               
               <div className="flex items-center gap-3">
                 {/* View Toggle */}
-                <div className="flex bg-gray-100 rounded-xl p-1">
+                <div className="flex bg-apple-gray-100 rounded-lg p-0.5">
                   {tabs.map(tab => (
                     <button 
                       key={tab.id} 
                       onClick={() => setActiveTab(tab.id)} 
-                      className={`
-                        px-3 py-1.5 rounded-lg text-sm font-medium
-                        transition-all duration-200
-                        ${activeTab === tab.id 
-                          ? 'bg-white shadow-sm text-gray-900' 
-                          : 'text-gray-500 hover:text-gray-700'
-                        }
-                      `}
+                      className={`px-2.5 py-1.5 rounded-md transition-colors ${
+                        activeTab === tab.id ? 'bg-white shadow-sm' : ''
+                      }`}
                     >
-                      <Icon 
-                        name={tab.icon} 
-                        className={`text-base ${activeTab === tab.id ? 'text-pv-purple' : ''}`} 
-                      />
+                      <Icon name={tab.icon} className={`text-base ${activeTab === tab.id ? 'text-apple-gray-600' : 'text-apple-gray-400'}`} />
                     </button>
                   ))}
                 </div>
                 
-                <Button 
-                  size="sm" 
-                  variant="ghost" 
-                  onClick={() => { setEditingPhase(null); setShowPhaseModal(true); }}
-                  icon="add"
-                >
-                  Fase
+                <Button size="small" variant="ghost" onClick={() => { setEditingPhase(null); setShowPhaseModal(true); }}>
+                  <Icon name="add" className="text-base" /> Fase
                 </Button>
-                
-                <Button 
-                  size="sm" 
-                  variant="ghost" 
-                  onClick={() => { setEditingSession(null); setShowSessionModal(true); }}
-                  icon="add"
-                >
-                  Sesión
+                <Button size="small" variant="ghost" onClick={() => { setEditingSession(null); setShowSessionModal(true); }}>
+                  <Icon name="add" className="text-base" /> Sesión
                 </Button>
               </div>
             </div>
@@ -244,31 +183,19 @@ const ProjectDetailView = ({ projectId, onBack, onRefresh }) => {
             </div>
           </Card>
 
-          {/* Tasks Card */}
-          <Card hover={false}>
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-pv-pink/10 to-pv-purple/10 flex items-center justify-center">
-                  <Icon name="task_alt" className="text-pv-purple text-lg" />
-                </div>
-                <h2 className="font-semibold text-gray-900">Tareas</h2>
-                <span className="text-sm text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                  {tasks.length}
-                </span>
+          {/* Tasks */}
+          <Card padding={false}>
+            <div className="px-6 py-4 border-b border-apple-gray-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-medium text-apple-gray-600">Tareas</h2>
+                <span className="text-xs text-apple-gray-400">({tasks.length})</span>
               </div>
               
               <div className="flex items-center gap-3">
                 <select 
                   value={taskFilter} 
                   onChange={e => setTaskFilter(e.target.value)} 
-                  className="
-                    text-sm px-3 py-2 
-                    bg-gray-50 border border-gray-200 rounded-xl
-                    focus:outline-none focus:ring-4 focus:ring-pv-purple/10 focus:border-pv-purple
-                    appearance-none cursor-pointer
-                    bg-[url('data:image/svg+xml;charset=UTF-8,%3csvg%20xmlns%3d%22http%3a%2f%2fwww.w3.org%2f2000%2fsvg%22%20width%3d%2224%22%20height%3d%2224%22%20viewBox%3d%220%200%2024%2024%22%20fill%3d%22none%22%20stroke%3d%22%239ca3af%22%20stroke-width%3d%222%22%20stroke-linecap%3d%22round%22%20stroke-linejoin%3d%22round%22%3e%3cpolyline%20points%3d%226%209%2012%2015%2018%209%22%3e%3c%2fpolyline%3e%3c%2fsvg%3e')]
-                    bg-[length:16px] bg-[right_8px_center] bg-no-repeat pr-8
-                  "
+                  className="text-xs px-2 py-1.5 bg-apple-gray-50 border border-apple-gray-200 rounded-lg focus:outline-none"
                 >
                   <option value="all">Todas</option>
                   <option value="pending">Pendientes</option>
@@ -278,131 +205,82 @@ const ProjectDetailView = ({ projectId, onBack, onRefresh }) => {
                   <option value="internal">Internas</option>
                 </select>
                 
-                <Button 
-                  size="sm" 
-                  onClick={() => { setEditingTask(null); setShowTaskModal(true); }}
-                  icon="add"
-                >
-                  Tarea
+                <Button size="small" onClick={() => { setEditingTask(null); setShowTaskModal(true); }}>
+                  <Icon name="add" className="text-base" /> Tarea
                 </Button>
               </div>
             </div>
             
-            <div className="p-4">
-              <div className="space-y-1">
-                {filteredTasks.map(t => (
-                  <div 
-                    key={t.id} 
-                    onClick={() => { setEditingTask(t); setShowTaskModal(true); }} 
-                    className="
-                      flex items-center gap-4 p-4 rounded-xl 
-                      hover:bg-gray-50 cursor-pointer 
-                      transition-all duration-200
-                      group
-                    "
-                  >
-                    {/* Status indicator */}
-                    <div className={`
-                      w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0
-                      transition-colors
-                      ${t.status === 'completed' 
-                        ? 'bg-emerald-500 border-emerald-500' 
-                        : t.status === 'in_progress' 
-                          ? 'border-amber-400 bg-amber-50' 
-                          : 'border-gray-300 bg-white'
-                      }
-                    `}>
-                      {t.status === 'completed' && (
-                        <Icon name="check" className="text-white text-xs" />
-                      )}
-                    </div>
-                    
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className={`font-medium ${
-                        t.status === 'completed' ? 'text-gray-400 line-through' : 'text-gray-900'
-                      }`}>
-                        {t.title}
-                      </div>
-                      <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                        {t.dueDate && (
-                          <span className="text-xs text-gray-400 flex items-center gap-1">
-                            <Icon name="schedule" className="text-xs" />
-                            {formatDate(t.dueDate)}
-                          </span>
-                        )}
-                        <Badge color={t.visibility === 'public' ? 'blue' : 'gray'} size="sm">
-                          {t.visibility === 'public' ? 'Público' : 'Interno'}
-                        </Badge>
-                        {t.assignedToType === 'client' && (
-                          <Badge color="purple" size="sm">Cliente</Badge>
-                        )}
-                        {t.priority === 'high' && (
-                          <Badge color="red" size="sm">Urgente</Badge>
-                        )}
-                      </div>
-                    </div>
-                    
-                    {/* Arrow */}
-                    <Icon 
-                      name="chevron_right" 
-                      className="text-gray-300 group-hover:text-gray-400 group-hover:translate-x-0.5 transition-all" 
-                    />
+            <div className="divide-y divide-apple-gray-100">
+              {filteredTasks.map(t => (
+                <div 
+                  key={t.id} 
+                  onClick={() => { setEditingTask(t); setShowTaskModal(true); }} 
+                  className="flex items-center gap-4 px-6 py-4 hover:bg-apple-gray-50 cursor-pointer transition-colors"
+                >
+                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                    t.status === 'completed' ? 'bg-apple-green border-apple-green' : 
+                    t.status === 'in_progress' ? 'border-apple-orange' : 'border-apple-gray-300'
+                  }`}>
+                    {t.status === 'completed' && <Icon name="check" className="text-white text-[10px]" />}
                   </div>
-                ))}
-              </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm ${t.status === 'completed' ? 'text-apple-gray-400 line-through' : 'text-apple-gray-600'}`}>
+                      {t.title}
+                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      {t.dueDate && <span className="text-[11px] text-apple-gray-400">{formatDate(t.dueDate)}</span>}
+                      <Badge color={t.visibility === 'public' ? 'blue' : 'gray'}>
+                        {t.visibility === 'public' ? 'Público' : 'Interno'}
+                      </Badge>
+                      {t.priority === 'high' && <Badge color="red">Urgente</Badge>}
+                    </div>
+                  </div>
+                  
+                  <Icon name="chevron_right" className="text-apple-gray-300 text-lg" />
+                </div>
+              ))}
               
               {filteredTasks.length === 0 && (
-                <div className="py-8">
-                  <EmptyState
-                    icon="task"
-                    title="No hay tareas"
-                    description={taskFilter !== 'all' ? 'Prueba con otro filtro' : 'Añade tu primera tarea'}
-                  />
+                <div className="py-12">
+                  <EmptyState icon="task" title="No hay tareas" description={taskFilter !== 'all' ? 'Prueba otro filtro' : undefined} />
                 </div>
               )}
             </div>
           </Card>
         </div>
 
-        {/* Right Column - Budget & Details */}
+        {/* Right Column */}
         <div className="space-y-6">
-          {/* Budget Card */}
+          {/* Budget */}
           <BudgetCard project={project} onSave={loadProject} />
           
-          {/* Details Card */}
-          <Card className="p-6" hover={false}>
-            <div className="flex items-center gap-3 mb-5">
-              <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
-                <Icon name="info" className="text-gray-500 text-lg" />
-              </div>
-              <h3 className="font-semibold text-gray-900">Detalles</h3>
-            </div>
-            
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-500">Estado</span>
+          {/* Details */}
+          <Card>
+            <h3 className="text-sm font-medium text-apple-gray-600 mb-4">Detalles</h3>
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between">
+                <span className="text-apple-gray-400">Estado</span>
                 <Badge color={project.status === 'active' ? 'green' : 'gray'}>
                   {project.status === 'active' ? 'Activo' : 'Inactivo'}
                 </Badge>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-500">Fases</span>
-                <span className="text-sm font-semibold text-gray-900">{phases.length}</span>
+              <div className="flex justify-between">
+                <span className="text-apple-gray-400">Fases</span>
+                <span className="text-apple-gray-600 font-medium">{phases.length}</span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-500">Sesiones</span>
-                <span className="text-sm font-semibold text-gray-900">{sessions.length}</span>
+              <div className="flex justify-between">
+                <span className="text-apple-gray-400">Sesiones</span>
+                <span className="text-apple-gray-600 font-medium">{sessions.length}</span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-500">Tareas</span>
-                <span className="text-sm font-semibold text-gray-900">{tasks.length}</span>
+              <div className="flex justify-between">
+                <span className="text-apple-gray-400">Tareas</span>
+                <span className="text-apple-gray-600 font-medium">{tasks.length}</span>
               </div>
-              <div className="pt-3 border-t border-gray-100">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-500">Creado</span>
-                  <span className="text-sm text-gray-900">{formatDate(project.createdAt)}</span>
-                </div>
+              <div className="flex justify-between pt-3 border-t border-apple-gray-100">
+                <span className="text-apple-gray-400">Creado</span>
+                <span className="text-apple-gray-600">{formatDate(project.createdAt)}</span>
               </div>
             </div>
           </Card>
@@ -411,61 +289,26 @@ const ProjectDetailView = ({ projectId, onBack, onRefresh }) => {
 
       {/* Modals */}
       {window.PhaseModal && (
-        <window.PhaseModal 
-          isOpen={showPhaseModal} 
-          onClose={() => setShowPhaseModal(false)} 
-          phase={editingPhase} 
-          projectId={projectId} 
-          phases={phases} 
-          onSave={loadProject} 
-        />
+        <window.PhaseModal isOpen={showPhaseModal} onClose={() => setShowPhaseModal(false)} phase={editingPhase} projectId={projectId} phases={phases} onSave={loadProject} />
       )}
-      
       {window.SessionModal && (
-        <window.SessionModal 
-          isOpen={showSessionModal} 
-          onClose={() => setShowSessionModal(false)} 
-          session={editingSession} 
-          projectId={projectId} 
-          phases={phases} 
-          onSave={loadProject} 
-        />
+        <window.SessionModal isOpen={showSessionModal} onClose={() => setShowSessionModal(false)} session={editingSession} projectId={projectId} phases={phases} onSave={loadProject} />
       )}
-      
       {window.TaskModal && (
-        <window.TaskModal 
-          isOpen={showTaskModal} 
-          onClose={() => setShowTaskModal(false)} 
-          task={editingTask} 
-          projectId={projectId} 
-          phases={phases} 
-          onSave={loadProject} 
-        />
+        <window.TaskModal isOpen={showTaskModal} onClose={() => setShowTaskModal(false)} task={editingTask} projectId={projectId} phases={phases} onSave={loadProject} />
       )}
-      
       {window.ClientAccessModal && (
-        <window.ClientAccessModal 
-          isOpen={showClientAccessModal} 
-          onClose={() => setShowClientAccessModal(false)} 
-          project={project} 
-          onSave={loadProject} 
-        />
+        <window.ClientAccessModal isOpen={showClientAccessModal} onClose={() => setShowClientAccessModal(false)} project={project} onSave={loadProject} />
       )}
-      
       {window.M365SetupModal && (
-        <window.M365SetupModal 
-          isOpen={showM365Modal} 
-          onClose={() => setShowM365Modal(false)} 
-          project={project} 
-          onSave={loadProject} 
-        />
+        <window.M365SetupModal isOpen={showM365Modal} onClose={() => setShowM365Modal(false)} project={project} onSave={loadProject} />
       )}
     </div>
   );
 };
 
 // ============================================
-// BUDGET CARD - Apple Style
+// BUDGET CARD
 // ============================================
 
 const BudgetCard = ({ project, onSave }) => {
@@ -482,180 +325,114 @@ const BudgetCard = ({ project, onSave }) => {
     setSaving(true);
     try {
       await api.put(`/api/projects/${project.id}`, { pricing, addOns });
-      toast.success('Presupuesto actualizado');
+      toast.success('Guardado');
       setEditing(false);
       onSave();
     } catch (e) {
-      toast.error('Error al guardar');
+      toast.error('Error');
     }
     setSaving(false);
   };
 
   const addAddOnItem = () => {
     if (!newAddOn.name || !newAddOn.price) return;
-    setAddOns([...addOns, { 
-      id: Date.now().toString(), 
-      name: newAddOn.name, 
-      price: parseFloat(newAddOn.price) 
-    }]);
+    setAddOns([...addOns, { id: Date.now().toString(), name: newAddOn.name, price: parseFloat(newAddOn.price) }]);
     setNewAddOn({ name: '', price: '' });
   };
 
-  const removeAddOn = (id) => {
-    setAddOns(addOns.filter(a => a.id !== id));
-  };
+  const removeAddOn = (id) => setAddOns(addOns.filter(a => a.id !== id));
 
   return (
-    <Card className="p-6" hover={false}>
-      <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
-            <Icon name="euro" className="text-emerald-600 text-lg" />
-          </div>
-          <h3 className="font-semibold text-gray-900">Presupuesto</h3>
-        </div>
-        <button 
-          onClick={() => setEditing(!editing)} 
-          className="text-sm font-medium text-pv-purple hover:text-pv-pink transition-colors"
-        >
+    <Card>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-medium text-apple-gray-600">Presupuesto</h3>
+        <button onClick={() => setEditing(!editing)} className="text-xs text-apple-blue hover:underline">
           {editing ? 'Cancelar' : 'Editar'}
         </button>
       </div>
 
       {editing ? (
-        <div className="space-y-5">
-          {/* Base Price */}
+        <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Precio base (sin IVA)</label>
-            <div className="relative">
+            <label className="block text-xs text-apple-gray-400 mb-1">Precio base</label>
+            <div className="flex items-center gap-2">
               <input 
                 type="number" 
                 value={pricing.basePrice} 
                 onChange={e => setPricing({ ...pricing, basePrice: parseFloat(e.target.value) || 0 })} 
-                className="
-                  w-full px-4 py-2.5 pr-10
-                  bg-gray-50 border border-gray-200 rounded-xl
-                  focus:outline-none focus:bg-white focus:border-pv-purple focus:ring-4 focus:ring-pv-purple/10
-                  transition-all
-                " 
+                className="flex-1 px-3 py-2 text-sm bg-apple-gray-50 border border-apple-gray-200 rounded-lg focus:outline-none focus:border-apple-blue" 
               />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">€</span>
+              <span className="text-apple-gray-400 text-sm">€</span>
             </div>
           </div>
           
-          {/* VAT Exempt */}
-          <label className="flex items-center gap-3 cursor-pointer group">
-            <div className="relative">
-              <input 
-                type="checkbox" 
-                checked={pricing.vatExempt} 
-                onChange={e => setPricing({ ...pricing, vatExempt: e.target.checked })} 
-                className="sr-only peer"
-              />
-              <div className="
-                w-5 h-5 rounded-md border-2 border-gray-300
-                peer-checked:bg-pv-purple peer-checked:border-pv-purple
-                transition-all
-                flex items-center justify-center
-              ">
-                {pricing.vatExempt && <Icon name="check" className="text-white text-xs" />}
-              </div>
-            </div>
-            <span className="text-sm text-gray-700 group-hover:text-gray-900 transition-colors">Exento de IVA</span>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input 
+              type="checkbox" 
+              checked={pricing.vatExempt} 
+              onChange={e => setPricing({ ...pricing, vatExempt: e.target.checked })} 
+              className="w-4 h-4 rounded border-apple-gray-300"
+            />
+            <span className="text-sm text-apple-gray-500">Exento de IVA</span>
           </label>
           
-          {/* Add-ons */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Add-ons</label>
-            <div className="space-y-2">
-              {addOns.map(a => (
-                <div key={a.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                  <span className="text-sm text-gray-700">{a.name}</span>
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-semibold text-gray-900">{formatCurrency(a.price)}</span>
-                    <button 
-                      onClick={() => removeAddOn(a.id)} 
-                      className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                    >
-                      <Icon name="close" className="text-sm" />
-                    </button>
-                  </div>
+            <label className="block text-xs text-apple-gray-400 mb-2">Add-ons</label>
+            {addOns.map(a => (
+              <div key={a.id} className="flex items-center justify-between py-2 border-b border-apple-gray-100">
+                <span className="text-sm text-apple-gray-600">{a.name}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-apple-gray-600">{formatCurrency(a.price)}</span>
+                  <button onClick={() => removeAddOn(a.id)} className="text-apple-red hover:opacity-70">
+                    <Icon name="close" className="text-sm" />
+                  </button>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
             
-            <div className="flex gap-2 mt-3">
-              <input 
-                type="text" 
-                placeholder="Nombre del add-on" 
-                value={newAddOn.name} 
-                onChange={e => setNewAddOn({ ...newAddOn, name: e.target.value })} 
-                className="
-                  flex-1 px-3 py-2 text-sm 
-                  bg-gray-50 border border-gray-200 rounded-xl
-                  focus:outline-none focus:bg-white focus:border-pv-purple
-                  transition-all
-                " 
-              />
-              <input 
-                type="number" 
-                placeholder="€" 
-                value={newAddOn.price} 
-                onChange={e => setNewAddOn({ ...newAddOn, price: e.target.value })} 
-                className="
-                  w-24 px-3 py-2 text-sm text-right
-                  bg-gray-50 border border-gray-200 rounded-xl
-                  focus:outline-none focus:bg-white focus:border-pv-purple
-                  transition-all
-                " 
-              />
-              <button 
-                onClick={addAddOnItem} 
-                className="
-                  px-3 py-2 
-                  bg-gray-100 hover:bg-gray-200 
-                  rounded-xl transition-colors
-                "
-              >
-                <Icon name="add" className="text-gray-600" />
+            <div className="flex gap-2 mt-2">
+              <input type="text" placeholder="Nombre" value={newAddOn.name} onChange={e => setNewAddOn({ ...newAddOn, name: e.target.value })} className="flex-1 px-2 py-1.5 text-sm bg-apple-gray-50 border border-apple-gray-200 rounded" />
+              <input type="number" placeholder="€" value={newAddOn.price} onChange={e => setNewAddOn({ ...newAddOn, price: e.target.value })} className="w-20 px-2 py-1.5 text-sm bg-apple-gray-50 border border-apple-gray-200 rounded" />
+              <button onClick={addAddOnItem} className="px-2 py-1.5 bg-apple-gray-100 rounded hover:bg-apple-gray-200">
+                <Icon name="add" className="text-sm text-apple-gray-600" />
               </button>
             </div>
           </div>
           
           <Button onClick={handleSave} loading={saving} className="w-full">
-            Guardar cambios
+            Guardar
           </Button>
         </div>
       ) : (
-        <div className="space-y-3">
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-500">Base</span>
-            <span className="text-sm font-medium text-gray-900">{formatCurrency(pricing.basePrice)}</span>
+        <div className="space-y-2 text-sm">
+          <div className="flex justify-between">
+            <span className="text-apple-gray-400">Base</span>
+            <span className="text-apple-gray-600">{formatCurrency(pricing.basePrice)}</span>
           </div>
           
           {addOns.map(a => (
-            <div key={a.id} className="flex justify-between items-center">
-              <span className="text-sm text-gray-500">{a.name}</span>
-              <span className="text-sm font-medium text-gray-900">{formatCurrency(a.price)}</span>
+            <div key={a.id} className="flex justify-between">
+              <span className="text-apple-gray-400">{a.name}</span>
+              <span className="text-apple-gray-600">{formatCurrency(a.price)}</span>
             </div>
           ))}
           
-          <div className="border-t border-gray-100 pt-4 mt-4 space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-500">Subtotal</span>
-              <span className="text-sm text-gray-700">{formatCurrency(revenue.subtotal)}</span>
+          <div className="border-t border-apple-gray-100 pt-3 mt-3">
+            <div className="flex justify-between">
+              <span className="text-apple-gray-400">Subtotal</span>
+              <span className="text-apple-gray-600">{formatCurrency(revenue.subtotal)}</span>
             </div>
             
             {!pricing.vatExempt && (
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-500">IVA ({pricing.vatRate}%)</span>
-                <span className="text-sm text-gray-700">{formatCurrency(revenue.vatAmount)}</span>
+              <div className="flex justify-between">
+                <span className="text-apple-gray-400">IVA ({pricing.vatRate}%)</span>
+                <span className="text-apple-gray-600">{formatCurrency(revenue.vatAmount)}</span>
               </div>
             )}
             
-            <div className="flex justify-between items-center pt-2">
-              <span className="font-semibold text-gray-900">Total</span>
-              <span className="text-xl font-bold gradient-text">{formatCurrency(revenue.total)}</span>
+            <div className="flex justify-between mt-2">
+              <span className="font-medium text-apple-gray-600">Total</span>
+              <span className="font-semibold text-lg pv-gradient-text">{formatCurrency(revenue.total)}</span>
             </div>
           </div>
         </div>
@@ -664,6 +441,5 @@ const BudgetCard = ({ project, onSave }) => {
   );
 };
 
-// Export to window
 window.ProjectDetailView = ProjectDetailView;
 window.BudgetCard = BudgetCard;

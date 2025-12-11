@@ -193,7 +193,7 @@ const KanbanView = ({ phases, sessions, tasks }) => {
                       name={s.type === 'online' ? 'videocam' : 'place'} 
                       className="text-sm text-blue-500" 
                     />
-                    <span className="text-xs text-blue-500 uppercase font-medium">Sesión</span>
+                    <span className="text-xs text-blue-500 uppercase font-medium">SesiÃ³n</span>
                   </div>
                   <div className="font-medium text-gray-800 text-sm">{s.title}</div>
                   <div className="text-xs text-gray-400 mt-1">
@@ -239,7 +239,7 @@ const CalendarView = ({ phases, sessions }) => {
   const startDay = (firstDay.getDay() + 6) % 7; // Monday = 0
   const daysInMonth = lastDay.getDate();
   
-  const days = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+  const days = ['Lun', 'Mar', 'MiÃ©', 'Jue', 'Vie', 'SÃ¡b', 'Dom'];
   const monthNames = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'

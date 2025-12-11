@@ -41,7 +41,7 @@ const PhaseModal = ({ isOpen, onClose, phase, projectId, phases, onSave }) => {
 
   const handleDateChange = (field, value) => {
     if (value && !validateDateNotTooOld(value)) {
-      setDateError('No se permiten fechas de más de 1 año en el pasado');
+      setDateError('No se permiten fechas de mÃ¡s de 1 aÃ±o en el pasado');
       return;
     }
     
@@ -85,7 +85,7 @@ const PhaseModal = ({ isOpen, onClose, phase, projectId, phases, onSave }) => {
   };
 
   const handleDelete = async () => {
-    if (!confirm('¿Eliminar esta fase?')) return;
+    if (!confirm('Â¿Eliminar esta fase?')) return;
     
     setLoading(true);
     try {
@@ -111,7 +111,7 @@ const PhaseModal = ({ isOpen, onClose, phase, projectId, phases, onSave }) => {
         />
         
         <Textarea
-          label="Descripción"
+          label="DescripciÃ³n"
           value={form.description}
           onChange={e => setForm({ ...form, description: e.target.value })}
           rows={2}
@@ -203,7 +203,7 @@ const SessionModal = ({ isOpen, onClose, session, projectId, phases, onSave }) =
 
   const handleSave = async (skipConflictCheck = false) => {
     if (!form.title || !form.date) {
-      toast.error('Título y fecha son requeridos');
+      toast.error('TÃ­tulo y fecha son requeridos');
       return;
     }
     
@@ -220,10 +220,10 @@ const SessionModal = ({ isOpen, onClose, session, projectId, phases, onSave }) =
     try {
       if (session) {
         await api.put(`/api/projects/${projectId}/sessions/${session.id}`, form);
-        toast.success('Sesión actualizada');
+        toast.success('SesiÃ³n actualizada');
       } else {
         await api.post(`/api/projects/${projectId}/sessions`, form);
-        toast.success('Sesión creada');
+        toast.success('SesiÃ³n creada');
       }
       onClose();
       onSave();
@@ -257,12 +257,12 @@ const SessionModal = ({ isOpen, onClose, session, projectId, phases, onSave }) =
   };
 
   const handleDelete = async () => {
-    if (!confirm('¿Eliminar esta sesión?')) return;
+    if (!confirm('Â¿Eliminar esta sesiÃ³n?')) return;
     
     setLoading(true);
     try {
       await api.delete(`/api/projects/${projectId}/sessions/${session.id}`);
-      toast.success('Sesión eliminada');
+      toast.success('SesiÃ³n eliminada');
       onClose();
       onSave();
     } catch (e) {
@@ -276,11 +276,11 @@ const SessionModal = ({ isOpen, onClose, session, projectId, phases, onSave }) =
       <Modal 
         isOpen={isOpen && !showConflictPopup} 
         onClose={onClose} 
-        title={session ? 'Editar sesión' : 'Nueva sesión'}
+        title={session ? 'Editar sesiÃ³n' : 'Nueva sesiÃ³n'}
       >
         <div className="space-y-4">
           <Input
-            label="Título"
+            label="TÃ­tulo"
             required
             value={form.title}
             onChange={e => setForm({ ...form, title: e.target.value })}
@@ -306,7 +306,7 @@ const SessionModal = ({ isOpen, onClose, session, projectId, phases, onSave }) =
           
           <div className="grid grid-cols-2 gap-4">
             <Input
-              label="Duración (min)"
+              label="DuraciÃ³n (min)"
               type="number"
               value={form.duration}
               onChange={e => setForm({ ...form, duration: parseInt(e.target.value) || 60 })}
@@ -324,7 +324,7 @@ const SessionModal = ({ isOpen, onClose, session, projectId, phases, onSave }) =
           
           {form.type === 'presencial' && (
             <Input
-              label="Ubicación"
+              label="UbicaciÃ³n"
               value={form.location}
               onChange={e => setForm({ ...form, location: e.target.value })}
               placeholder="Ej: Oficina Madrid"
@@ -361,12 +361,12 @@ const SessionModal = ({ isOpen, onClose, session, projectId, phases, onSave }) =
       <Modal 
         isOpen={showConflictPopup} 
         onClose={() => setShowConflictPopup(false)} 
-        title="⚠️ Fecha fuera de rango" 
+        title="âš ï¸ Fecha fuera de rango" 
         size="sm"
       >
         <div className="space-y-4">
           <p className="text-gray-600">
-            La fecha <strong>{formatDate(conflict?.sessionDate)}</strong> está fuera del rango 
+            La fecha <strong>{formatDate(conflict?.sessionDate)}</strong> estÃ¡ fuera del rango 
             de la fase "<strong>{conflict?.phase?.name}</strong>" 
             ({formatDate(conflict?.phase?.startDate)} - {formatDate(conflict?.phase?.endDate)}).
           </p>
@@ -383,7 +383,7 @@ const SessionModal = ({ isOpen, onClose, session, projectId, phases, onSave }) =
               onClick={() => setShowConflictPopup(false)} 
               className="w-full"
             >
-              <Icon name="edit_calendar" /> Cambiar fecha de la sesión
+              <Icon name="edit_calendar" /> Cambiar fecha de la sesiÃ³n
             </Button>
             <Button 
               variant="outline" 
@@ -433,7 +433,7 @@ const TaskModal = ({ isOpen, onClose, task, projectId, phases, onSave }) => {
 
   const handleSave = async () => {
     if (!form.title) {
-      toast.error('El título es requerido');
+      toast.error('El tÃ­tulo es requerido');
       return;
     }
     
@@ -455,7 +455,7 @@ const TaskModal = ({ isOpen, onClose, task, projectId, phases, onSave }) => {
   };
 
   const handleDelete = async () => {
-    if (!confirm('¿Eliminar esta tarea?')) return;
+    if (!confirm('Â¿Eliminar esta tarea?')) return;
     
     setLoading(true);
     try {
@@ -473,15 +473,15 @@ const TaskModal = ({ isOpen, onClose, task, projectId, phases, onSave }) => {
     <Modal isOpen={isOpen} onClose={onClose} title={task ? 'Editar tarea' : 'Nueva tarea'}>
       <div className="space-y-4">
         <Input
-          label="Título"
+          label="TÃ­tulo"
           required
           value={form.title}
           onChange={e => setForm({ ...form, title: e.target.value })}
-          placeholder="Ej: Preparar documentación"
+          placeholder="Ej: Preparar documentaciÃ³n"
         />
         
         <Textarea
-          label="Descripción"
+          label="DescripciÃ³n"
           value={form.description}
           onChange={e => setForm({ ...form, description: e.target.value })}
           rows={2}
@@ -489,7 +489,7 @@ const TaskModal = ({ isOpen, onClose, task, projectId, phases, onSave }) => {
         
         <div className="grid grid-cols-2 gap-4">
           <Input
-            label="Fecha límite"
+            label="Fecha lÃ­mite"
             type="date"
             value={form.dueDate}
             onChange={e => setForm({ ...form, dueDate: e.target.value })}
@@ -511,7 +511,7 @@ const TaskModal = ({ isOpen, onClose, task, projectId, phases, onSave }) => {
             value={form.visibility}
             onChange={e => setForm({ ...form, visibility: e.target.value })}
             options={[
-              { value: 'public', label: 'Pública' },
+              { value: 'public', label: 'PÃºblica' },
               { value: 'internal', label: 'Interna' }
             ]}
           />
@@ -622,7 +622,7 @@ const ClientAccessModal = ({ isOpen, onClose, project, onSave }) => {
   };
 
   const handleDelete = async (userId) => {
-    if (!confirm('¿Eliminar este acceso?')) return;
+    if (!confirm('Â¿Eliminar este acceso?')) return;
     
     try {
       await api.delete(`/api/projects/${project.id}/client-access/${userId}`);
@@ -809,7 +809,7 @@ const M365SetupModal = ({ isOpen, onClose, project, onSave }) => {
                 rel="noopener" 
                 className="text-sm text-teal-600 hover:underline"
               >
-                Abrir carpeta en SharePoint →
+                Abrir carpeta en SharePoint â†’
               </a>
             ) : (
               <select 
@@ -839,7 +839,7 @@ const M365SetupModal = ({ isOpen, onClose, project, onSave }) => {
                 rel="noopener" 
                 className="text-sm text-purple-600 hover:underline"
               >
-                Abrir canal en Teams →
+                Abrir canal en Teams â†’
               </a>
             ) : (
               <select 
