@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portal Cliente - Plain Vanilla</title>
@@ -13,17 +14,29 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body, #root { height: 100%; font-family: 'Inter', sans-serif; }
-        .material-icons-outlined { font-size: 20px; }
+        .material-icons-outlined { font-size: 20px; vertical-align: middle; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .animate-pulse-slow { animation: pulse 2s ease-in-out infinite; }
     </style>
     <script>
-        tailwind.config = { theme: { extend: { colors: { pv: { pink: '#ff94a6', purple: '#8b37ed' } } } } }
+        tailwind.config = { 
+            theme: { 
+                extend: { 
+                    colors: { 
+                        pv: { pink: '#ff94a6', purple: '#8b37ed', dark: '#1a1a2e' } 
+                    } 
+                } 
+            } 
+        }
     </script>
 </head>
-<body class="bg-gray-50">
+<body class="bg-gray-100">
     <div id="root"></div>
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useRef } = React;
+        
         const Icon = ({ name, className = "" }) => <span className={`material-icons-outlined ${className}`}>{name}</span>;
+        
         const Logo = ({ className = "w-10 h-10" }) => (
             <svg viewBox="0 0 211.98 211.98" className={className}>
                 <defs><linearGradient id="pvGrad" x1="0" y1="105.99" x2="211.98" y2="105.99"><stop offset="0" stopColor="#ff94a6"/><stop offset="1" stopColor="#8b37ed"/></linearGradient></defs>
@@ -31,140 +44,855 @@
             </svg>
         );
 
-        const Card = ({ children, className = "" }) => <div className={`bg-white rounded-xl shadow-sm border border-gray-100 ${className}`}>{children}</div>;
+        const Card = ({ children, className = "" }) => (
+            <div className={`bg-white rounded-lg shadow-sm border border-gray-200 ${className}`}>{children}</div>
+        );
 
-        function App() {
+        const api = {
+            get: (url) => fetch(url).then(r => r.ok ? r.json() : Promise.reject(r)),
+            post: (url, data) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(r => r.ok ? r.json() : r.json().then(e => Promise.reject(e)))
+        };
+
+        // Login Screen
+        const LoginScreen = ({ onLogin, slug }) => {
+            const [email, setEmail] = useState('');
+            const [password, setPassword] = useState('');
+            const [error, setError] = useState('');
+            const [loading, setLoading] = useState(false);
+            
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setError('');
+                setLoading(true);
+                try {
+                    const result = await api.post('/api/portal/login', { email, password, slug });
+                    localStorage.setItem('portal_token', result.token);
+                    onLogin(result.token);
+                } catch (err) {
+                    setError(err.error || 'Error de autenticación');
+                }
+                setLoading(false);
+            };
+            
+            return (
+                <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 p-4">
+                    <Card className="p-8 max-w-md w-full">
+                        <div className="text-center mb-8">
+                            <Logo className="w-14 h-14 mx-auto mb-4" />
+                            <h1 className="text-2xl font-bold text-gray-800">Portal de Cliente</h1>
+                            <p className="text-gray-500 mt-2 text-sm">Introduce tus credenciales para acceder</p>
+                        </div>
+                        <form onSubmit={handleSubmit}>
+                            {error && (
+                                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm flex items-center gap-2">
+                                    <Icon name="error" className="text-sm" />{error}
+                                </div>
+                            )}
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pv-purple focus:border-transparent" placeholder="tu@email.com" required />
+                            </div>
+                            <div className="mb-6">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+                                <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pv-purple focus:border-transparent" placeholder="••••••••" required />
+                            </div>
+                            <button type="submit" disabled={loading} className="w-full py-2 bg-gradient-to-r from-pv-pink to-pv-purple text-white rounded-lg font-medium hover:opacity-90 transition disabled:opacity-50">
+                                {loading ? 'Accediendo...' : 'Acceder'}
+                            </button>
+                        </form>
+                        <p className="text-center text-gray-400 text-xs mt-6">
+                            ¿Problemas? <a href="mailto:hola@plainvanilla.ai" className="text-pv-purple hover:underline">Contacta con nosotros</a>
+                        </p>
+                    </Card>
+                </div>
+            );
+        };
+
+        // Calendar Component with Phases
+        const ProjectCalendar = ({ sessions, phases }) => {
+            const [currentDate, setCurrentDate] = useState(new Date());
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const startPadding = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
+            
+            const days = [];
+            for (let i = -startPadding; i <= lastDay.getDate() + (6 - (lastDay.getDay() === 0 ? 7 : lastDay.getDay()) + 1); i++) {
+                days.push(new Date(year, month, i + 1));
+            }
+            
+            const weeks = [];
+            for (let i = 0; i < days.length; i += 7) weeks.push(days.slice(i, i + 7));
+            
+            const getSessionsForDate = (date) => {
+                const dateStr = date.toISOString().split('T')[0];
+                return sessions.filter(s => s.date === dateStr);
+            };
+            
+            const getPhasesForDate = (date) => {
+                const dateStr = date.toISOString().split('T')[0];
+                return (phases || []).filter(p => p.startDate && p.endDate && dateStr >= p.startDate && dateStr <= p.endDate);
+            };
+            
+            const phaseColors = ['bg-purple-200', 'bg-blue-200', 'bg-green-200', 'bg-amber-200', 'bg-pink-200', 'bg-teal-200'];
+            
+            const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+            const dayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+            const today = new Date(); today.setHours(0,0,0,0);
+            
+            return (
+                <div>
+                    <div className="flex items-center justify-between mb-4">
+                        <button onClick={() => setCurrentDate(new Date(year, month - 1))} className="p-2 hover:bg-gray-100 rounded-lg"><Icon name="chevron_left" /></button>
+                        <h3 className="font-semibold text-lg">{monthNames[month]} {year}</h3>
+                        <button onClick={() => setCurrentDate(new Date(year, month + 1))} className="p-2 hover:bg-gray-100 rounded-lg"><Icon name="chevron_right" /></button>
+                    </div>
+                    
+                    {/* Leyenda de fases */}
+                    {phases?.filter(p => p.startDate && p.endDate).length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-3">
+                            {phases.filter(p => p.startDate && p.endDate).map((p, i) => (
+                                <div key={p.id} className="flex items-center gap-1 text-xs">
+                                    <div className={"w-3 h-3 rounded " + phaseColors[i % phaseColors.length]}></div>
+                                    <span className="text-gray-600">{p.name}</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                    
+                    <div className="grid grid-cols-7 gap-1 mb-2">
+                        {dayNames.map(d => <div key={d} className="text-center text-xs font-medium text-gray-500 py-2">{d}</div>)}
+                    </div>
+                    <div className="grid grid-cols-7 gap-1">
+                        {weeks.flat().map((date, i) => {
+                            const isCurrentMonth = date.getMonth() === month;
+                            const isToday = date.getTime() === today.getTime();
+                            const daySessions = getSessionsForDate(date);
+                            const dayPhases = getPhasesForDate(date);
+                            
+                            return (
+                                <div key={i} className={"min-h-[80px] p-1 border rounded-lg relative " + (isCurrentMonth ? 'bg-white' : 'bg-gray-50') + (isToday ? ' ring-2 ring-purple-500' : '')}>
+                                    {/* Indicadores de fase */}
+                                    {dayPhases.length > 0 && (
+                                        <div className="absolute top-0 left-0 right-0 flex">
+                                            {dayPhases.map((p) => (
+                                                <div key={p.id} className={"h-1 flex-1 " + phaseColors[(phases || []).findIndex(ph => ph.id === p.id) % phaseColors.length]} title={p.name}></div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    <div className={"text-xs font-medium mb-1 mt-1 " + (isCurrentMonth ? 'text-gray-700' : 'text-gray-400')}>{date.getDate()}</div>
+                                    <div className="space-y-1">
+                                        {daySessions.slice(0, 2).map(s => (
+                                            <div key={s.id} className="text-xs p-1 rounded bg-gradient-to-r from-purple-100 to-pink-100 truncate" title={s.title}>
+                                                <span className="font-medium">{s.time}</span> {s.title}
+                                            </div>
+                                        ))}
+                                        {daySessions.length > 2 && <div className="text-xs text-gray-500">+{daySessions.length - 2} más</div>}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                    <div className="mt-4 flex justify-center">
+                        <button onClick={() => setCurrentDate(new Date())} className="text-sm text-purple-600 hover:underline">Ir a hoy</button>
+                    </div>
+                </div>
+            );
+        };
+
+        // Kanban View for Client
+        const KanbanView = ({ phases, sessions, tasks }) => {
+            const getSessionStatus = (session) => {
+                const now = new Date();
+                const sessionStart = new Date(session.date + 'T' + (session.time || '00:00'));
+                const sessionEnd = new Date(sessionStart.getTime() + 60 * 60 * 1000);
+                
+                if (now < sessionStart) return 'todo';
+                if (now >= sessionStart && now <= sessionEnd) return 'doing';
+                return 'done';
+            };
+            
+            const getTaskColumn = (task) => {
+                if (task.status === 'completed') return 'done';
+                if (task.status === 'in_progress') return 'doing';
+                return 'todo';
+            };
+            
+            const getPhaseProgress = (phaseId) => {
+                const phaseSessions = sessions.filter(s => s.phaseId === phaseId);
+                const phaseTasks = (tasks || []).filter(t => t.phaseId === phaseId);
+                const total = phaseSessions.length + phaseTasks.length;
+                if (total === 0) return 0;
+                
+                const completedSessions = phaseSessions.filter(s => getSessionStatus(s) === 'done').length;
+                const completedTasks = phaseTasks.filter(t => t.status === 'completed').length;
+                return Math.round(((completedSessions + completedTasks) / total) * 100);
+            };
+            
+            const columns = [
+                { id: 'todo', name: 'Por hacer', color: 'bg-gray-100', icon: 'schedule' },
+                { id: 'doing', name: 'En curso', color: 'bg-amber-100', icon: 'play_circle' },
+                { id: 'done', name: 'Completado', color: 'bg-green-100', icon: 'check_circle' }
+            ];
+            
+            return (
+                <div>
+                    {phases.length > 0 && (
+                        <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                            <div className="text-sm font-medium text-gray-600 mb-2">Progreso del proyecto</div>
+                            <div className="space-y-2">
+                                {phases.map(phase => {
+                                    const progress = getPhaseProgress(phase.id);
+                                    const isComplete = progress === 100;
+                                    return (
+                                        <div key={phase.id} className="flex items-center gap-3">
+                                            <div className="w-28 text-sm truncate">{phase.name}</div>
+                                            <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                                <div className={"h-full transition-all " + (isComplete ? 'bg-green-500' : 'bg-purple-500')} style={{ width: progress + '%' }}></div>
+                                            </div>
+                                            <div className={"text-xs font-medium w-8 " + (isComplete ? 'text-green-600' : 'text-gray-500')}>{progress}%</div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {columns.map(col => {
+                            const colSessions = sessions.filter(s => getSessionStatus(s) === col.id);
+                            const colTasks = (tasks || []).filter(t => getTaskColumn(t) === col.id);
+                            
+                            return (
+                                <div key={col.id} className={col.color + " rounded-xl p-3"}>
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <Icon name={col.icon} className={"text-sm " + (col.id === 'done' ? 'text-green-600' : col.id === 'doing' ? 'text-amber-600' : 'text-gray-500')} />
+                                        <h3 className="font-semibold text-sm text-gray-700">{col.name}</h3>
+                                        <span className="text-xs text-gray-500 ml-auto">{colSessions.length + colTasks.length}</span>
+                                    </div>
+                                    
+                                    <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                                        {colSessions.map(s => (
+                                            <div key={'s-' + s.id} className="bg-white rounded-lg p-3 shadow-sm border border-gray-200">
+                                                <div className="flex items-start gap-2">
+                                                    <div className={"w-8 h-8 rounded-lg flex items-center justify-center " + (s.type === 'online' ? 'bg-blue-100' : 'bg-amber-100')}>
+                                                        <Icon name={s.type === 'online' ? 'videocam' : 'location_on'} className={"text-sm " + (s.type === 'online' ? 'text-blue-600' : 'text-amber-600')} />
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <div className="font-medium text-sm">{s.title}</div>
+                                                        <div className="text-xs text-gray-500">{new Date(s.date).toLocaleDateString('es-ES', {day: 'numeric', month: 'short'})} · {s.time}</div>
+                                                    </div>
+                                                </div>
+                                                {s.teamsLink && col.id === 'doing' && (
+                                                    <a href={s.teamsLink} target="_blank" className="mt-2 w-full py-1.5 bg-blue-600 text-white rounded text-xs flex items-center justify-center gap-1">
+                                                        <Icon name="videocam" className="text-xs" /> Unirse
+                                                    </a>
+                                                )}
+                                            </div>
+                                        ))}
+                                        
+                                        {colTasks.map(t => (
+                                            <div key={'t-' + t.id} className="bg-white rounded-lg p-3 shadow-sm border border-gray-200">
+                                                <div className="flex items-start gap-2">
+                                                    <Icon name={t.status === 'completed' ? 'check_circle' : 'task_alt'} className={t.status === 'completed' ? 'text-green-500' : 'text-gray-400'} />
+                                                    <div>
+                                                        <div className={"font-medium text-sm " + (t.status === 'completed' ? 'line-through text-gray-400' : '')}>{t.title}</div>
+                                                        {t.assignedToType === 'client' && <span className="text-xs text-purple-500">Tu tarea</span>}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        
+                                        {colSessions.length === 0 && colTasks.length === 0 && (
+                                            <div className="text-center py-4 text-gray-400 text-xs">Sin elementos</div>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        };
+
+        
+        const GanttView = ({ phases, sessions }) => {
+            const sortedPhases = [...phases].sort((a, b) => {
+                if (!a.startDate) return 1;
+                if (!b.startDate) return -1;
+                return a.startDate.localeCompare(b.startDate);
+            });
+            
+            const allDates = [...phases.flatMap(p => [p.startDate, p.endDate]), ...sessions.map(s => s.date)].filter(Boolean);
+            if (allDates.length === 0) return <div className="text-center text-gray-400 py-8">El diagrama Gantt estará disponible cuando se definan las fases</div>;
+            
+            const minDate = new Date(Math.min(...allDates.map(d => new Date(d))));
+            const maxDate = new Date(Math.max(...allDates.map(d => new Date(d))));
+            minDate.setDate(minDate.getDate() - 7);
+            maxDate.setDate(maxDate.getDate() + 7);
+            
+            const totalDays = Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24));
+            const dayWidth = Math.max(25, 700 / totalDays);
+            
+            const getPosition = (date) => {
+                const d = new Date(date);
+                return Math.ceil((d - minDate) / (1000 * 60 * 60 * 24)) * dayWidth;
+            };
+            
+            const getWidth = (start, end) => {
+                return (Math.ceil((new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24)) + 1) * dayWidth;
+            };
+            
+            const months = [];
+            const current = new Date(minDate);
+            while (current <= maxDate) {
+                months.push({ date: new Date(current), label: current.toLocaleDateString('es-ES', { month: 'short', year: '2-digit' }) });
+                current.setMonth(current.getMonth() + 1);
+                current.setDate(1);
+            }
+            
+            const phaseColors = ['from-purple-400 to-purple-600', 'from-blue-400 to-blue-600', 'from-green-400 to-green-600', 'from-amber-400 to-amber-600', 'from-pink-400 to-pink-600'];
+            const today = new Date().toISOString().split('T')[0];
+            const todayPos = getPosition(today);
+            
+            return (
+                <div className="overflow-x-auto">
+                    <div style={{ minWidth: totalDays * dayWidth + 180 + 'px' }}>
+                        <div className="flex border-b mb-2">
+                            <div className="w-40 flex-shrink-0 font-medium text-sm text-gray-600 p-2">Fase</div>
+                            <div className="flex-1 relative h-8">
+                                {months.map((m, i) => (
+                                    <div key={i} className="absolute top-0 text-xs text-gray-500 border-l border-gray-200 pl-1" style={{ left: getPosition(m.date) + 'px' }}>{m.label}</div>
+                                ))}
+                            </div>
+                        </div>
+                        {sortedPhases.map((phase, idx) => {
+                            const phaseSessions = sessions.filter(s => s.phaseId === phase.id);
+                            return (
+                                <div key={phase.id} className="flex items-center border-b border-gray-100">
+                                    <div className="w-40 flex-shrink-0 p-2">
+                                        <div className="font-medium text-sm truncate">{phase.name}</div>
+                                        {phase.startDate && phase.endDate && (
+                                            <div className="text-xs text-gray-500">{new Date(phase.startDate).toLocaleDateString('es-ES', {day: 'numeric', month: 'short'})} - {new Date(phase.endDate).toLocaleDateString('es-ES', {day: 'numeric', month: 'short'})}</div>
+                                        )}
+                                    </div>
+                                    <div className="flex-1 relative h-10">
+                                        <div className="absolute top-0 bottom-0 w-0.5 bg-red-400 z-10" style={{ left: todayPos + 'px' }}></div>
+                                        {phase.startDate && phase.endDate && (
+                                            <div className={"absolute top-1 h-8 rounded-lg bg-gradient-to-r " + phaseColors[idx % phaseColors.length] + " shadow-sm flex items-center px-2 text-white text-xs"} style={{ left: getPosition(phase.startDate) + 'px', width: getWidth(phase.startDate, phase.endDate) + 'px' }}>
+                                                <span className="truncate">{phase.name}</span>
+                                            </div>
+                                        )}
+                                        {phaseSessions.map(s => (
+                                            <div key={s.id} className={"absolute top-3 w-4 h-4 rounded-full border-2 border-white shadow " + (s.type === 'online' ? 'bg-blue-500' : 'bg-amber-500')} style={{ left: (getPosition(s.date) - 8) + 'px' }} title={s.title}></div>
+                                        ))}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                        <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
+                            <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-blue-500"></div> Online</div>
+                            <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-amber-500"></div> Presencial</div>
+                            <div className="flex items-center gap-1"><div className="w-0.5 h-3 bg-red-400"></div> Hoy</div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Timeline View
+        const TimelineView = ({ phases, sessions }) => {
+            const formatDate = (date) => {
+                const d = new Date(date);
+                const today = new Date(); today.setHours(0,0,0,0);
+                const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+                if (d.toDateString() === today.toDateString()) return 'Hoy';
+                if (d.toDateString() === tomorrow.toDateString()) return 'Mañana';
+                return d.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
+            };
+            
+            const isUpcoming = (session) => new Date(session.date) >= new Date(new Date().setHours(0,0,0,0));
+            
+            return (
+                <div className="space-y-4">
+                    {phases.length === 0 ? (
+                        <p className="text-gray-400 text-center py-8">El roadmap se mostrará cuando se definan las fases</p>
+                    ) : phases.map((phase, idx) => {
+                        const phaseSessions = sessions.filter(s => s.phaseId === phase.id).sort((a,b) => new Date(a.date + 'T' + a.time) - new Date(b.date + 'T' + b.time));
+                        const isCompleted = phase.status === 'completed';
+                        const isActive = phase.status === 'active';
+                        
+                        return (
+                            <div key={phase.id} className={"rounded-xl border-2 overflow-hidden " + 
+                                (isCompleted ? 'border-green-300 bg-green-50/50' : 
+                                 isActive ? 'border-purple-300 bg-purple-50/50' : 
+                                 'border-gray-200 bg-gray-50/50')}>
+                                
+                                <div className={"flex items-center gap-3 p-4 " + 
+                                    (isCompleted ? 'bg-green-100/50' : isActive ? 'bg-purple-100/50' : 'bg-gray-100/50')}>
+                                    <div className={"w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 " + 
+                                        (isCompleted ? 'bg-green-500 text-white' : isActive ? 'bg-pv-purple text-white animate-pulse-slow' : 'bg-gray-300 text-white')}>
+                                        {isCompleted ? <Icon name="check" /> : <span className="font-bold">{idx + 1}</span>}
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2">
+                                            <span className={"font-semibold " + (isCompleted ? 'text-green-700' : isActive ? 'text-pv-purple' : 'text-gray-500')}>{phase.name}</span>
+                                            {isActive && <span className="px-2 py-0.5 bg-pv-purple text-white text-xs rounded-full">En curso</span>}
+                                        </div>
+                                        {phase.description && <div className="text-sm text-gray-500">{phase.description}</div>}
+                                        {(phase.startDate || phase.endDate) && (
+                                            <div className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                                                <Icon name="calendar_today" className="text-xs" />
+                                                {phase.startDate && new Date(phase.startDate).toLocaleDateString('es-ES', {day: 'numeric', month: 'short'})}
+                                                {phase.startDate && phase.endDate && ' → '}
+                                                {phase.endDate && new Date(phase.endDate).toLocaleDateString('es-ES', {day: 'numeric', month: 'short'})}
+                                            </div>
+                                        )}
+                                    </div>
+                                    {phaseSessions.length > 0 && (
+                                        <div className="text-sm text-gray-500">{phaseSessions.length} sesión{phaseSessions.length > 1 ? 'es' : ''}</div>
+                                    )}
+                                </div>
+                                
+                                {phaseSessions.length > 0 && (
+                                    <div className="p-3 space-y-2">
+                                        {phaseSessions.map(s => {
+                                            const upcoming = isUpcoming(s);
+                                            return (
+                                                <div key={s.id} className={"flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-100 " + (!upcoming && 'opacity-60')}>
+                                                    <div className={"w-10 h-10 rounded-lg flex items-center justify-center " + (s.type === 'online' ? 'bg-blue-100' : 'bg-amber-100')}>
+                                                        <Icon name={s.type === 'online' ? 'videocam' : 'location_on'} className={s.type === 'online' ? 'text-blue-600' : 'text-amber-600'} />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="font-medium text-gray-800 truncate">{s.title}</div>
+                                                        <div className="text-sm text-gray-500 flex items-center gap-2">
+                                                            <span className={upcoming ? 'text-pv-purple font-medium' : ''}>{formatDate(s.date)}</span>
+                                                            <span>•</span>
+                                                            <span>{s.time}</span>
+                                                        </div>
+                                                    </div>
+                                                    {s.teamsLink && upcoming && (
+                                                        <a href={s.teamsLink} target="_blank" className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 flex items-center gap-1">
+                                                            <Icon name="videocam" className="text-sm" /> Unirse
+                                                        </a>
+                                                    )}
+                                                    {!upcoming && <Icon name="check_circle" className="text-green-500" />}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                                
+                                {phaseSessions.length === 0 && (
+                                    <div className="p-4 text-center text-sm text-gray-400">Sin sesiones programadas</div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            );
+        };
+
+        // Roadmap Component with views
+        const Roadmap = ({ phases, sessions }) => {
+            const [viewMode, setViewMode] = useState('timeline');
+            const completedCount = phases.filter(p => p.status === 'completed').length;
+            const progress = phases.length > 0 ? Math.round((completedCount / phases.length) * 100) : 0;
+            
+            return (
+                <Card className="p-5">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="font-semibold flex items-center gap-2"><Icon name="rocket_launch" className="text-purple-600" /> Roadmap</h2>
+                        <div className="flex items-center gap-3">
+                            <div className="text-right">
+                                <div className="text-xl font-bold bg-gradient-to-r from-pv-pink to-pv-purple bg-clip-text text-transparent">{progress}%</div>
+                                <div className="text-xs text-gray-500">{completedCount}/{phases.length} fases</div>
+                            </div>
+                            <div className="flex border rounded-lg overflow-hidden">
+                                <button onClick={() => setViewMode('timeline')} className={"px-2 py-1.5 text-xs " + (viewMode === 'timeline' ? 'bg-purple-600 text-white' : 'hover:bg-gray-50')}>
+                                    <Icon name="timeline" className="text-sm" />
+                                </button>
+                                <button onClick={() => setViewMode('calendar')} className={"px-2 py-1.5 text-xs border-l " + (viewMode === 'calendar' ? 'bg-purple-600 text-white' : 'hover:bg-gray-50')}>
+                                    <Icon name="calendar_month" className="text-sm" />
+                                </button>
+                                <button onClick={() => setViewMode('kanban')} className={"px-2 py-1.5 text-xs border-l " + (viewMode === 'kanban' ? 'bg-purple-600 text-white' : 'hover:bg-gray-50')}>
+                                    <Icon name="view_kanban" className="text-sm" />
+                                </button>
+                                <button onClick={() => setViewMode('gantt')} className={"px-2 py-1.5 text-xs border-l " + (viewMode === 'gantt' ? 'bg-purple-600 text-white' : 'hover:bg-gray-50')}>
+                                    <Icon name="view_timeline" className="text-sm" />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* Progress bar */}
+                    <div className="h-2 bg-gray-100 rounded-full mb-5 overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-pv-pink to-pv-purple rounded-full transition-all duration-500" style={{ width: `${progress}%` }}></div>
+                    </div>
+                    
+                    {viewMode === 'calendar' ? (
+                        <ProjectCalendar sessions={sessions} phases={phases} />
+                    ) : viewMode === 'kanban' ? (
+                        <KanbanView phases={phases} sessions={sessions} tasks={project.tasks || []} />
+                    ) : viewMode === 'gantt' ? (
+                        <GanttView phases={phases} sessions={sessions} />
+                    ) : (
+                        <TimelineView phases={phases} sessions={sessions} />
+                    )}
+                </Card>
+            );
+        };
+
+        
+        // Tasks Component for Client
+        const TasksCard = ({ tasks, token }) => {
+            const [localTasks, setLocalTasks] = useState(tasks || []);
+            
+            const toggleTask = async (task) => {
+                // Solo permitir marcar como completada si está asignada al cliente
+                if (task.assignedToType !== 'client') return;
+                
+                const newStatus = task.status === 'completed' ? 'pending' : 'completed';
+                try {
+                    await api.post(`/api/portal/task/${task.id}/status?token=${token}`, { status: newStatus });
+                    setLocalTasks(localTasks.map(t => t.id === task.id ? {...t, status: newStatus} : t));
+                } catch (e) {
+                    console.error('Error updating task');
+                }
+            };
+            
+            const pendingTasks = localTasks.filter(t => t.status !== 'completed');
+            const completedTasks = localTasks.filter(t => t.status === 'completed');
+            
+            return (
+                <Card className="p-5">
+                    <div className="flex items-center gap-3 mb-4">
+                        <Icon name="task_alt" className="text-green-500" />
+                        <div>
+                            <h2 className="font-bold text-gray-800">Tareas</h2>
+                            <p className="text-xs text-gray-500">{pendingTasks.length} pendientes</p>
+                        </div>
+                    </div>
+                    
+                    {localTasks.length === 0 ? (
+                        <div className="text-center text-gray-400 py-4 text-sm">
+                            <Icon name="task" className="text-2xl mb-1" />
+                            <p>Sin tareas asignadas</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                            {pendingTasks.map(task => (
+                                <div key={task.id} className={"flex items-start gap-3 p-3 rounded-lg border " + (task.priority === 'high' ? 'border-red-200 bg-red-50' : 'border-gray-100 bg-gray-50')}>
+                                    <button 
+                                        onClick={() => toggleTask(task)} 
+                                        disabled={task.assignedToType !== 'client'}
+                                        className={"mt-0.5 " + (task.assignedToType === 'client' ? 'cursor-pointer' : 'cursor-default')}
+                                    >
+                                        <Icon 
+                                            name={task.status === 'in_progress' ? 'pending' : 'radio_button_unchecked'} 
+                                            className={task.status === 'in_progress' ? 'text-amber-500' : 'text-gray-300'} 
+                                        />
+                                    </button>
+                                    <div className="flex-1">
+                                        <div className="font-medium text-sm">{task.title}</div>
+                                        {task.description && <div className="text-xs text-gray-500 mt-1">{task.description}</div>}
+                                        <div className="flex flex-wrap gap-2 mt-2">
+                                            {task.assignedToType === 'client' && (
+                                                <span className="text-xs px-1.5 py-0.5 bg-purple-100 text-purple-600 rounded">Tu tarea</span>
+                                            )}
+                                            {task.assignedToType === 'team' && (
+                                                <span className="text-xs px-1.5 py-0.5 bg-indigo-100 text-indigo-600 rounded">Equipo PV</span>
+                                            )}
+                                            {task.dueDate && (
+                                                <span className={"text-xs flex items-center gap-1 " + (new Date(task.dueDate) < new Date() ? 'text-red-500' : 'text-gray-500')}>
+                                                    <Icon name="event" className="text-xs" />
+                                                    {new Date(task.dueDate).toLocaleDateString('es-ES', {day: 'numeric', month: 'short', year: 'numeric'})}
+                                                </span>
+                                            )}
+                                            {task.priority === 'high' && (
+                                                <span className="text-xs px-1.5 py-0.5 bg-red-100 text-red-600 rounded">Urgente</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                            
+                            {completedTasks.length > 0 && (
+                                <div className="pt-2 mt-2 border-t">
+                                    <div className="text-xs text-gray-400 mb-2">Completadas ({completedTasks.length})</div>
+                                    {completedTasks.slice(0, 3).map(task => (
+                                        <div key={task.id} className="flex items-center gap-3 p-2 opacity-50">
+                                            <Icon name="check_circle" className="text-green-500 text-sm" />
+                                            <span className="text-sm line-through text-gray-400">{task.title}</span>
+                                        </div>
+                                    ))}
+                                    {completedTasks.length > 3 && <div className="text-xs text-gray-400 text-center">+{completedTasks.length - 3} más</div>}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </Card>
+            );
+        };
+
+        // Next Session Card
+        const NextSessionCard = ({ sessions }) => {
+            const upcoming = sessions
+                .filter(s => new Date(s.date) >= new Date(new Date().setHours(0,0,0,0)))
+                .sort((a,b) => new Date(a.date + 'T' + a.time) - new Date(b.date + 'T' + b.time))[0];
+            
+            if (!upcoming) return null;
+            
+            const formatDate = (date) => {
+                const d = new Date(date);
+                const today = new Date(); today.setHours(0,0,0,0);
+                const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+                if (d.toDateString() === today.toDateString()) return 'Hoy';
+                if (d.toDateString() === tomorrow.toDateString()) return 'Mañana';
+                return d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+            };
+            
+            return (
+                <Card className="p-5 bg-gradient-to-r from-pv-pink to-pv-purple text-white border-0">
+                    <div className="flex items-center gap-2 text-white/80 text-sm mb-2">
+                        <Icon name="event" className="text-sm" />
+                        Próxima sesión
+                    </div>
+                    <h3 className="font-bold text-xl mb-3">{upcoming.title}</h3>
+                    <div className="flex items-center gap-4 text-white/90 text-sm mb-4">
+                        <span className="flex items-center gap-1"><Icon name="calendar_today" className="text-sm" />{formatDate(upcoming.date)}</span>
+                        <span className="flex items-center gap-1"><Icon name="schedule" className="text-sm" />{upcoming.time}</span>
+                    </div>
+                    {upcoming.type === 'online' && upcoming.teamsLink && (
+                        <a href={upcoming.teamsLink} target="_blank" className="inline-flex items-center gap-2 px-4 py-2 bg-white text-pv-purple rounded-lg font-medium hover:bg-gray-100 transition">
+                            <Icon name="videocam" />Unirse a la reunión
+                        </a>
+                    )}
+                </Card>
+            );
+        };
+
+        // Chat
+        const ChatCard = ({ token }) => {
+            const [messages, setMessages] = useState([]);
+            const [newMessage, setNewMessage] = useState('');
+            const [sending, setSending] = useState(false);
+            const containerRef = useRef(null);
+            
+            useEffect(() => {
+                loadMessages();
+                const interval = setInterval(loadMessages, 10000);
+                return () => clearInterval(interval);
+            }, []);
+            
+            useEffect(() => {
+                if (containerRef.current && messages.length > 0) {
+                    containerRef.current.scrollTop = containerRef.current.scrollHeight;
+                }
+            }, [messages]);
+            
+            const loadMessages = () => {
+                api.get(`/api/portal/messages?token=${token}`).then(setMessages).catch(() => {});
+            };
+            
+            const sendMessage = async () => {
+                if (!newMessage.trim() || sending) return;
+                setSending(true);
+                try {
+                    await api.post(`/api/portal/message?token=${token}`, { message: newMessage });
+                    setNewMessage('');
+                    loadMessages();
+                } catch (e) {}
+                setSending(false);
+            };
+            
+            return (
+                <Card className="flex flex-col h-[350px]">
+                    <div className="p-4 border-b flex items-center gap-3">
+                        <Icon name="chat" className="text-pv-purple" />
+                        <div>
+                            <h2 className="font-bold text-gray-800">Mensajes</h2>
+                            <p className="text-xs text-gray-500">Comunícate con el equipo</p>
+                        </div>
+                    </div>
+                    <div ref={containerRef} className="flex-1 overflow-auto p-4 space-y-3 bg-gray-50">
+                        {messages.length === 0 ? (
+                            <div className="text-center text-gray-400 py-8">
+                                <Icon name="forum" className="text-4xl mb-2" />
+                                <p className="text-sm">Envía un mensaje</p>
+                            </div>
+                        ) : messages.map(m => (
+                            <div key={m.id} className="flex gap-3">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pv-pink to-pv-purple flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                                    {m.from.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                                </div>
+                                <div className="flex-1 bg-white p-3 rounded-lg border border-gray-100">
+                                    <div className="flex items-baseline gap-2 mb-1">
+                                        <span className="font-medium text-sm text-gray-800">{m.from}</span>
+                                        <span className="text-xs text-gray-400">{new Date(m.createdAt).toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                                    </div>
+                                    <p className="text-gray-600 text-sm">{m.message}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="p-4 border-t">
+                        <div className="flex gap-2">
+                            <input value={newMessage} onChange={e => setNewMessage(e.target.value)} onKeyPress={e => e.key === 'Enter' && sendMessage()}
+                                placeholder="Escribe un mensaje..." className="flex-1 px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pv-purple" />
+                            <button onClick={sendMessage} disabled={!newMessage.trim() || sending}
+                                className="px-4 py-2 bg-gradient-to-r from-pv-pink to-pv-purple text-white rounded-lg disabled:opacity-50">
+                                <Icon name="send" />
+                            </button>
+                        </div>
+                    </div>
+                </Card>
+            );
+        };
+
+        // Documents
+        const DocumentsCard = ({ hasFiles, folderUrl }) => (
+            <Card className="p-5">
+                <div className="flex items-center gap-3 mb-4">
+                    <Icon name="folder" className="text-teal-500" />
+                    <h2 className="font-bold text-gray-800">Documentos</h2>
+                </div>
+                {hasFiles && folderUrl ? (
+                    <a href={folderUrl} target="_blank" className="flex items-center justify-center gap-2 w-full py-2 bg-teal-50 text-teal-700 rounded-lg hover:bg-teal-100 transition text-sm font-medium">
+                        <Icon name="folder_open" className="text-sm" />Abrir carpeta
+                    </a>
+                ) : (
+                    <div className="text-center py-4 text-gray-400 text-sm">
+                        <Icon name="folder_off" className="text-2xl mb-1" />
+                        <p>Sin documentos</p>
+                    </div>
+                )}
+            </Card>
+        );
+
+        // Dashboard
+        const ProjectDashboard = ({ token, onLogout }) => {
             const [project, setProject] = useState(null);
+            const [files, setFiles] = useState({ folderUrl: null });
             const [loading, setLoading] = useState(true);
             const [error, setError] = useState(null);
 
-            const token = new URLSearchParams(window.location.search).get('token');
-
             useEffect(() => {
-                if (!token) {
-                    setError('Token de acceso no proporcionado');
-                    setLoading(false);
-                    return;
-                }
-
-                fetch(`/api/portal/project?token=${token}`)
-                    .then(r => r.ok ? r.json() : Promise.reject('Token inválido o expirado'))
-                    .then(setProject)
-                    .catch(e => setError(typeof e === 'string' ? e : 'Error cargando proyecto'))
+                Promise.all([
+                    api.get(`/api/portal/project?token=${token}`),
+                    api.get(`/api/portal/files?token=${token}`).catch(() => ({ folderUrl: null }))
+                ])
+                    .then(([proj, f]) => { setProject(proj); setFiles(f); })
+                    .catch(() => { setError('Sesión expirada'); localStorage.removeItem('portal_token'); onLogout(); })
                     .finally(() => setLoading(false));
             }, []);
 
             if (loading) {
                 return (
                     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
-                        <Logo className="w-20 h-20 animate-pulse" />
+                        <div className="text-center">
+                            <Logo className="w-16 h-16 mx-auto animate-pulse-slow" />
+                            <p className="text-white/60 mt-4 text-sm">Cargando...</p>
+                        </div>
                     </div>
                 );
             }
 
-            if (error) {
+            if (error || !project) {
                 return (
                     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
                         <Card className="p-8 max-w-md w-full mx-4 text-center">
-                            <Icon name="error" className="text-5xl text-red-500 mb-4" />
-                            <h1 className="text-xl font-bold text-gray-800 mb-2">Acceso denegado</h1>
-                            <p className="text-gray-500">{error}</p>
+                            <Icon name="error" className="text-red-500 text-4xl mb-4" />
+                            <h1 className="text-lg font-bold text-gray-800 mb-2">Error</h1>
+                            <p className="text-gray-500 text-sm">{error || 'No se pudo cargar'}</p>
                         </Card>
                     </div>
                 );
             }
 
             return (
-                <div className="min-h-screen bg-gray-50">
+                <div className="min-h-screen bg-gray-100">
                     {/* Header */}
-                    <header className="bg-white border-b">
-                        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <Logo className="w-8 h-8" />
-                                <div>
-                                    <div className="font-semibold text-gray-800">Plain Vanilla</div>
-                                    <div className="text-xs text-gray-500">Portal de Cliente</div>
+                    <header className="bg-white border-b shadow-sm">
+                        <div className="max-w-6xl mx-auto px-4 py-4">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <Logo className="w-8 h-8" />
+                                    <div>
+                                        <div className="font-semibold text-gray-800">{project.name}</div>
+                                        <div className="text-xs text-gray-500">{project.client}</div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                        project.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                                        {project.status === 'active' ? 'En curso' : project.status}
+                                    </span>
+                                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-pv-pink to-pv-purple flex items-center justify-center text-white text-xs font-medium">
+                                            {project.clientName?.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                                        </div>
+                                        <span className="hidden sm:inline">{project.clientName}</span>
+                                    </div>
+                                    <button onClick={onLogout} className="text-gray-400 hover:text-gray-600"><Icon name="logout" /></button>
                                 </div>
                             </div>
-                            <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">{project.status}</span>
                         </div>
                     </header>
 
                     {/* Content */}
-                    <main className="max-w-5xl mx-auto px-4 py-8">
-                        <div className="mb-8">
-                            <h1 className="text-3xl font-bold text-gray-800 mb-2">{project.name}</h1>
-                            <p className="text-gray-500">{project.client}</p>
-                            {project.description && <p className="text-gray-600 mt-4">{project.description}</p>}
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Documentos */}
-                            {project.permissions.includes('files') && (
-                                <Card className="p-6">
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center">
-                                            <Icon name="folder" className="text-teal-600" />
-                                        </div>
-                                        <h2 className="font-semibold text-gray-800">Documentos</h2>
-                                    </div>
-                                    {project.hasFiles ? (
-                                        <div className="text-center py-8 text-gray-400">
-                                            <Icon name="cloud_download" className="text-4xl mb-2" />
-                                            <p className="text-sm">Los documentos estarán disponibles aquí</p>
-                                        </div>
-                                    ) : (
-                                        <div className="text-center py-8 text-gray-400">
-                                            <Icon name="folder_off" className="text-4xl mb-2" />
-                                            <p className="text-sm">Sin documentos todavía</p>
-                                        </div>
-                                    )}
+                    <main className="max-w-6xl mx-auto px-4 py-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <div className="lg:col-span-2 space-y-6">
+                                <NextSessionCard sessions={project.sessions || []} />
+                                <Roadmap phases={project.phases || []} sessions={project.sessions || []} />
+                            </div>
+                            <div className="space-y-6">
+                                <ChatCard token={token} />
+                                <TasksCard tasks={project.tasks || []} token={token} />
+                                <DocumentsCard hasFiles={project.hasFiles} folderUrl={files.folderUrl || project.sharepoint?.folderUrl} />
+                                <Card className="p-4">
+                                    <h3 className="font-semibold text-gray-800 mb-2 text-sm">¿Necesitas ayuda?</h3>
+                                    <a href="mailto:hola@plainvanilla.ai" className="flex items-center gap-2 text-pv-purple text-sm hover:underline">
+                                        <Icon name="email" className="text-sm" />hola@plainvanilla.ai
+                                    </a>
                                 </Card>
-                            )}
-
-                            {/* Tareas */}
-                            {project.permissions.includes('tasks') && (
-                                <Card className="p-6">
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-                                            <Icon name="task_alt" className="text-green-600" />
-                                        </div>
-                                        <h2 className="font-semibold text-gray-800">Tareas del proyecto</h2>
-                                    </div>
-                                    {project.hasTasks ? (
-                                        <div className="text-center py-8 text-gray-400">
-                                            <Icon name="checklist" className="text-4xl mb-2" />
-                                            <p className="text-sm">Las tareas estarán disponibles aquí</p>
-                                        </div>
-                                    ) : (
-                                        <div className="text-center py-8 text-gray-400">
-                                            <Icon name="assignment_late" className="text-4xl mb-2" />
-                                            <p className="text-sm">Sin tareas todavía</p>
-                                        </div>
-                                    )}
-                                </Card>
-                            )}
+                            </div>
                         </div>
-
-                        {/* Contacto */}
-                        <Card className="p-6 mt-6">
-                            <h2 className="font-semibold text-gray-800 mb-4">¿Necesitas ayuda?</h2>
-                            <p className="text-gray-600 text-sm mb-4">Si tienes alguna pregunta sobre el proyecto, no dudes en contactarnos.</p>
-                            <a href="mailto:hola@plainvanilla.ai" className="inline-flex items-center gap-2 text-pv-purple hover:underline">
-                                <Icon name="email" />
-                                hola@plainvanilla.ai
-                            </a>
-                        </Card>
                     </main>
 
                     {/* Footer */}
-                    <footer className="border-t mt-12">
-                        <div className="max-w-5xl mx-auto px-4 py-6 text-center text-sm text-gray-400">
-                            © {new Date().getFullYear()} Plain Vanilla Solutions
+                    <footer className="border-t mt-8 bg-white">
+                        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between text-xs text-gray-400">
+                            <span>© {new Date().getFullYear()} Plain Vanilla Solutions</span>
+                            <svg viewBox="0 0 211.98 211.98" className="w-5 h-5 opacity-40">
+                                <path fill="#8b37ed" d="M56.43,105.99c21.77-10.17,39.38-27.79,49.56-49.56,10.18,21.77,27.79,39.38,49.56,49.56-21.77,10.18-39.39,27.79-49.56,49.56-10.18-21.77-27.79-39.39-49.56-49.56ZM211.98,92.84C163.57,86.86,125.12,48.41,119.14,0c48.4,5.97,86.86,44.43,92.83,92.83ZM92.84,0C86.87,48.41,48.41,86.87,0,92.84,5.97,44.43,44.43,5.97,92.84,0ZM0,119.15c48.4,5.98,86.86,44.43,92.83,92.83C44.43,206,5.98,167.55,0,119.15ZM119.14,211.98c5.97-48.41,44.43-86.87,92.84-92.84-5.97,48.41-44.43,86.87-92.84,92.84Z"/>
+                            </svg>
                         </div>
                     </footer>
                 </div>
             );
+        };
+
+        function App() {
+            const [token, setToken] = useState(localStorage.getItem('portal_token'));
+            const urlToken = new URLSearchParams(window.location.search).get('token');
+            const slug = window.location.pathname.split('/').filter(Boolean).pop();
+            
+            useEffect(() => {
+                if (urlToken) {
+                    localStorage.setItem('portal_token', urlToken);
+                    setToken(urlToken);
+                    window.history.replaceState({}, '', window.location.pathname);
+                }
+            }, []);
+            
+            const handleLogout = () => { localStorage.removeItem('portal_token'); setToken(null); };
+            
+            if (!token) return <LoginScreen onLogin={setToken} slug={slug} />;
+            return <ProjectDashboard token={token} onLogout={handleLogout} />;
         }
 
         ReactDOM.render(<App />, document.getElementById('root'));

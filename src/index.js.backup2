@@ -57,12 +57,14 @@ function requireAuth(req, res, next) {
 async function requireClientAuth(req, res, next) {
   const token = req.query.token || req.headers['x-client-token'];
   if (!token) return res.status(401).json({ error: 'Token requerido' });
-
+  
+  // Verificar token (formato: base64 de visitorId:visitorHash)
   try {
     const decoded = Buffer.from(token, 'base64').toString('utf8');
     const [visitorId, hash] = decoded.split(':');
     const user = await db.getUserByEmail(visitorId);
     if (!user) return res.status(401).json({ error: 'Token inválido' });
+    
     req.clientUser = user;
     req.clientToken = token;
     next();
@@ -100,7 +102,7 @@ app.get('/auth/callback', async (req, res) => {
 
     const allowedDomain = process.env.ALLOWED_DOMAIN;
     const userEmail = userInfo.mail || userInfo.userPrincipalName;
-
+    
     if (allowedDomain && !userEmail?.toLowerCase().endsWith(`@${allowedDomain.toLowerCase()}`)) {
       return res.send(`<h1>Acceso denegado</h1><p>Solo usuarios @${allowedDomain}</p>`);
     }
@@ -131,10 +133,10 @@ app.get('/auth/logout', (req, res) => {
 app.get('/api/me', (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'No autenticado' });
   if (Date.now() > req.session.user.expiresAt) return res.status(401).json({ error: 'Sesión expirada' });
-  res.json({
-    id: req.session.user.id,
-    name: req.session.user.name,
-    email: req.session.user.email
+  res.json({ 
+    id: req.session.user.id, 
+    name: req.session.user.name, 
+    email: req.session.user.email 
   });
 });
 
@@ -221,7 +223,7 @@ app.get('/api/projects/:id/phases', requireAuth, async (req, res) => {
 app.post('/api/projects/:id/phases', requireAuth, async (req, res) => {
   try {
     const phase = await db.createPhase(req.params.id, req.body);
-
+    
     // Sync to calendar if dates provided
     if (req.session.user?.accessToken && phase.startDate && phase.endDate) {
       try {
@@ -235,7 +237,7 @@ app.post('/api/projects/:id/phases', requireAuth, async (req, res) => {
         console.error('Error syncing phase to calendar:', e.message);
       }
     }
-
+    
     res.status(201).json(phase);
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -246,7 +248,7 @@ app.put('/api/projects/:id/phases/:phaseId', requireAuth, async (req, res) => {
   try {
     const phase = await db.updatePhase(req.params.phaseId, req.body);
     if (!phase) return res.status(404).json({ error: 'Fase no encontrada' });
-
+    
     // Sync to calendar
     if (req.session.user?.accessToken && phase.startDate && phase.endDate) {
       try {
@@ -259,7 +261,7 @@ app.put('/api/projects/:id/phases/:phaseId', requireAuth, async (req, res) => {
         console.error('Error syncing phase to calendar:', e.message);
       }
     }
-
+    
     res.json(phase);
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -269,7 +271,7 @@ app.put('/api/projects/:id/phases/:phaseId', requireAuth, async (req, res) => {
 app.delete('/api/projects/:id/phases/:phaseId', requireAuth, async (req, res) => {
   try {
     const phase = await db.getPhase(req.params.phaseId);
-
+    
     // Delete from calendar
     if (req.session.user?.accessToken && phase?.calendarEventId) {
       try {
@@ -278,7 +280,7 @@ app.delete('/api/projects/:id/phases/:phaseId', requireAuth, async (req, res) =>
         console.error('Error deleting calendar event:', e.message);
       }
     }
-
+    
     await db.deletePhase(req.params.phaseId);
     res.json({ success: true });
   } catch (e) {
@@ -305,9 +307,9 @@ app.post('/api/projects/:id/sessions', requireAuth, async (req, res) => {
     const { title, date, time, duration, type, location, phaseId, attendees } = req.body;
     const project = await db.getProject(req.params.id);
     if (!project) return res.status(404).json({ error: 'Proyecto no encontrado' });
-
+    
     let teamsData = null;
-
+    
     // Create Teams meeting if online
     if (type === 'online' && req.session.user?.accessToken) {
       try {
@@ -315,23 +317,23 @@ app.post('/api/projects/:id/sessions', requireAuth, async (req, res) => {
         const endDate = new Date(`${date}T${time}`);
         endDate.setMinutes(endDate.getMinutes() + (duration || 60));
         const endDateTime = endDate.toISOString().slice(0, 19);
-
+        
         teamsData = await graph.createOnlineMeeting(
-          req.session.user.accessToken,
-          `[${project.name}] ${title}`,
-          startDateTime,
-          endDateTime,
+          req.session.user.accessToken, 
+          `[${project.name}] ${title}`, 
+          startDateTime, 
+          endDateTime, 
           attendees || []
         );
       } catch (e) {
         console.error('Error creating Teams meeting:', e.message);
       }
     }
-
+    
     const session = await db.createSession(req.params.id, {
       title, date, time, duration, type, location, phaseId
     });
-
+    
     // Update with Teams data
     if (teamsData) {
       await db.updateSession(session.id, {
@@ -341,7 +343,7 @@ app.post('/api/projects/:id/sessions', requireAuth, async (req, res) => {
       session.teamsLink = teamsData.joinUrl;
       session.calendarEventId = teamsData.id;
     }
-
+    
     res.status(201).json(session);
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -352,9 +354,9 @@ app.put('/api/projects/:id/sessions/:sessionId', requireAuth, async (req, res) =
   try {
     const currentSession = await db.getSession(req.params.sessionId);
     if (!currentSession) return res.status(404).json({ error: 'Sesión no encontrada' });
-
+    
     const session = await db.updateSession(req.params.sessionId, req.body);
-
+    
     // Update Teams event if exists
     if (currentSession.calendarEventId && req.session.user?.accessToken) {
       try {
@@ -364,7 +366,7 @@ app.put('/api/projects/:id/sessions/:sessionId', requireAuth, async (req, res) =
           const endDate = new Date(`${date}T${time}`);
           endDate.setMinutes(endDate.getMinutes() + (duration || 60));
           const endDateTime = endDate.toISOString().slice(0, 19);
-
+          
           await graph.updateCalendarEvent(req.session.user.accessToken, currentSession.calendarEventId, {
             subject: title,
             start: { dateTime: startDateTime, timeZone: 'Europe/Madrid' },
@@ -375,7 +377,7 @@ app.put('/api/projects/:id/sessions/:sessionId', requireAuth, async (req, res) =
         console.error('Error updating Teams event:', e.message);
       }
     }
-
+    
     res.json(session);
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -385,7 +387,7 @@ app.put('/api/projects/:id/sessions/:sessionId', requireAuth, async (req, res) =
 app.delete('/api/projects/:id/sessions/:sessionId', requireAuth, async (req, res) => {
   try {
     const session = await db.getSession(req.params.sessionId);
-
+    
     // Delete Teams event
     if (req.session.user?.accessToken && session?.calendarEventId) {
       try {
@@ -394,7 +396,7 @@ app.delete('/api/projects/:id/sessions/:sessionId', requireAuth, async (req, res
         console.error('Error deleting Teams event:', e.message);
       }
     }
-
+    
     await db.deleteSession(req.params.sessionId);
     res.json({ success: true });
   } catch (e) {
@@ -418,27 +420,10 @@ app.get('/api/projects/:id/tasks', requireAuth, async (req, res) => {
 
 app.post('/api/projects/:id/tasks', requireAuth, async (req, res) => {
   try {
-    const project = await db.getProject(req.params.id);
-    if (!project) return res.status(404).json({ error: 'Proyecto no encontrado' });
-
     const task = await db.createTask(req.params.id, {
       ...req.body,
       createdBy: req.session.user.email
     });
-
-    // Sync to Planner if public
-    if (task.visibility === 'public' && project.planner?.planId && req.session.user?.accessToken) {
-      try {
-        const plannerTaskId = await syncTaskToPlanner(req.session.user.accessToken, task, project);
-        if (plannerTaskId) {
-          await db.updateTask(task.id, { plannerTaskId });
-          task.plannerTaskId = plannerTaskId;
-        }
-      } catch (e) {
-        console.error('Error syncing task to Planner:', e.message);
-      }
-    }
-
     res.status(201).json(task);
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -449,20 +434,6 @@ app.put('/api/projects/:id/tasks/:taskId', requireAuth, async (req, res) => {
   try {
     const task = await db.updateTask(req.params.taskId, req.body);
     if (!task) return res.status(404).json({ error: 'Tarea no encontrada' });
-
-    // Sync to Planner if public
-    const project = await db.getProject(req.params.id);
-    if (task.visibility === 'public' && project.planner?.planId && req.session.user?.accessToken) {
-      try {
-        const plannerTaskId = await syncTaskToPlanner(req.session.user.accessToken, task, project);
-        if (plannerTaskId && !task.plannerTaskId) {
-          await db.updateTask(task.id, { plannerTaskId });
-        }
-      } catch (e) {
-        console.error('Error syncing task to Planner:', e.message);
-      }
-    }
-
     res.json(task);
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -471,16 +442,6 @@ app.put('/api/projects/:id/tasks/:taskId', requireAuth, async (req, res) => {
 
 app.delete('/api/projects/:id/tasks/:taskId', requireAuth, async (req, res) => {
   try {
-    // Delete from Planner if synced
-    const taskToDelete = await db.getTask(req.params.taskId);
-    if (req.session.user?.accessToken && taskToDelete?.plannerTaskId) {
-      try {
-        await graph.deleteTask(req.session.user.accessToken, taskToDelete.plannerTaskId);
-      } catch (e) {
-        console.error('Error deleting task from Planner:', e.message);
-      }
-    }
-
     await db.deleteTask(req.params.taskId);
     res.json({ success: true });
   } catch (e) {
@@ -531,8 +492,8 @@ app.get('/api/projects/:id/files', requireAuth, async (req, res) => {
     if (!project?.sharepoint) return res.json([]);
 
     const files = await graph.listFiles(
-      req.session.user.accessToken,
-      project.sharepoint.siteId,
+      req.session.user.accessToken, 
+      project.sharepoint.siteId, 
       project.sharepoint.folderId
     );
     res.json(files);
@@ -575,8 +536,8 @@ app.post('/api/projects/:id/teams', requireAuth, async (req, res) => {
     const channel = await graph.createChannel(req.session.user.accessToken, teamId, channelName, project.description);
 
     await graph.sendChannelMessage(
-      req.session.user.accessToken,
-      teamId,
+      req.session.user.accessToken, 
+      teamId, 
       channel.id,
       `🚀 <b>Proyecto iniciado:</b> ${project.name}<br>Cliente: ${project.client}<br>Creado por: ${req.session.user.name}`
     );
@@ -630,62 +591,6 @@ app.post('/api/projects/:id/planner', requireAuth, async (req, res) => {
 });
 
 // ============================================
-// CONTACTS SEARCH (NUEVO)
-// ============================================
-
-app.get('/api/contacts/search', requireAuth, async (req, res) => {
-  try {
-    const query = (req.query.q || '').toLowerCase();
-    const projectId = req.query.projectId;
-    const results = [];
-    const seen = new Set();
-    
-    const addContact = (name, email, source) => {
-      if (!email || seen.has(email.toLowerCase())) return;
-      seen.add(email.toLowerCase());
-      results.push({ name: name || email, email, source });
-    };
-    
-    // 1. Clientes con acceso al proyecto
-    if (projectId) {
-      const access = await db.getProjectAccess(projectId);
-      access.forEach(a => addContact(a.name, a.email, 'client'));
-    }
-    
-    const token = req.session.user.accessToken;
-    
-    // 2. People (contactos frecuentes)
-    try {
-      const people = await graph.searchPeople(token, query);
-      people.forEach(p => {
-        const email = p.scoredEmailAddresses?.[0]?.address;
-        if (email) addContact(p.displayName, email, 'people');
-      });
-    } catch (e) { console.error('People search error:', e.message); }
-    
-    // 3. Directorio de usuarios
-    try {
-      const users = await graph.listUsers(token, query);
-      users.forEach(u => {
-        if (u.mail) addContact(u.displayName, u.mail, 'directory');
-      });
-    } catch (e) { console.error('Directory search error:', e.message); }
-    
-    // Filtrar localmente por query
-    const filtered = query.length >= 2 
-      ? results.filter(c => 
-          c.name.toLowerCase().includes(query) || 
-          c.email.toLowerCase().includes(query)
-        )
-      : results;
-    
-    res.json(filtered.slice(0, 20));
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// ============================================
 // SETUP ALL
 // ============================================
 
@@ -721,15 +626,15 @@ app.post('/api/projects/:id/setup-all', requireAuth, async (req, res) => {
     if (teamId && !project.teams) {
       try {
         const channel = await graph.createChannel(
-          req.session.user.accessToken,
-          teamId,
-          `${project.client} - ${project.name}`,
+          req.session.user.accessToken, 
+          teamId, 
+          `${project.client} - ${project.name}`, 
           project.description
         );
         await graph.sendChannelMessage(
-          req.session.user.accessToken,
-          teamId,
-          channel.id,
+          req.session.user.accessToken, 
+          teamId, 
+          channel.id, 
           `🚀 <b>Proyecto iniciado:</b> ${project.name}<br>Cliente: ${project.client}`
         );
         updates.teams_team_id = teamId;
@@ -740,7 +645,6 @@ app.post('/api/projects/:id/setup-all', requireAuth, async (req, res) => {
     }
 
     const updated = Object.keys(updates).length > 0 ? await db.updateProject(project.id, updates) : project;
-
     res.json({ project: updated, results });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -759,15 +663,15 @@ app.post('/api/projects/:id/client-access', requireAuth, async (req, res) => {
     const { email, name, permissions = ['view', 'tasks'], sendEmail = true } = req.body;
     const password = crypto.randomBytes(4).toString('hex').toUpperCase();
     const passwordHash = crypto.createHash('sha256').update(password).digest('hex');
-
+    
     // Create or update user
     const user = await db.createUser({ email, name: name || email, passwordHash, role: 'client' });
-
+    
     // Create project access
     await db.createProjectAccess(project.id, user.id, permissions);
 
     const portalUrl = `${process.env.BASE_URL || 'https://admin.plainvanilla.ai'}/portal/${project.slug}`;
-
+    
     // Send email if requested
     if (sendEmail && req.session.user?.accessToken) {
       try {
@@ -808,54 +712,6 @@ app.delete('/api/projects/:id/client-access/:userId', requireAuth, async (req, r
   }
 });
 
-// Resend email (NUEVO)
-app.post('/api/projects/:id/client-access/:userId/resend', requireAuth, async (req, res) => {
-  try {
-    const project = await db.getProject(req.params.id);
-    if (!project) return res.status(404).json({ error: 'Proyecto no encontrado' });
-    
-    // Buscar el acceso
-    const access = await db.getProjectAccess(req.params.id);
-    const userAccess = access.find(a => a.user_id == req.params.userId);
-    
-    if (!userAccess) return res.status(404).json({ error: 'Acceso no encontrado' });
-    
-    // Generar nueva contraseña
-    const password = crypto.randomBytes(4).toString('hex').toUpperCase();
-    const passwordHash = crypto.createHash('sha256').update(password).digest('hex');
-    
-    // Actualizar contraseña en la base de datos
-    await db.pool.query(
-      'UPDATE users SET password_hash = $1 WHERE id = $2',
-      [passwordHash, req.params.userId]
-    );
-    
-    const portalUrl = `${process.env.BASE_URL || 'https://admin.plainvanilla.ai'}/portal/${project.slug}`;
-    
-    // Enviar email
-    if (req.session.user?.accessToken) {
-      try {
-        await sendClientAccessEmail(req.session.user.accessToken, {
-          to: userAccess.email,
-          name: userAccess.name,
-          projectName: project.name,
-          portalUrl,
-          password,
-          isResend: true
-        });
-        console.log('Email reenviado a:', userAccess.email);
-      } catch (e) {
-        console.error('Error enviando email:', e.message);
-        return res.status(500).json({ error: 'Error enviando email: ' + e.message });
-      }
-    }
-    
-    res.json({ success: true, password });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
 // ============================================
 // PORTAL (PUBLIC)
 // ============================================
@@ -868,25 +724,25 @@ app.post('/api/portal/login', async (req, res) => {
   try {
     const { email, password, slug } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'Email y contraseña requeridos' });
-
+    
     const passwordHash = crypto.createHash('sha256').update(password).digest('hex');
     const user = await db.getUserByEmail(email);
-
+    
     if (!user || user.password_hash !== passwordHash) {
       return res.status(401).json({ error: 'Credenciales incorrectas' });
     }
-
+    
     // Get user's projects
     const projects = await db.getUserProjects(user.id);
-
+    
     if (slug) {
       const project = projects.find(p => p.slug === slug);
       if (!project) return res.status(401).json({ error: 'No tienes acceso a este proyecto' });
     }
-
+    
     // Generate token
     const token = Buffer.from(`${email}:${passwordHash}`).toString('base64');
-
+    
     res.json({ token, projects: projects.map(p => ({ id: p.id, name: p.name, slug: p.slug })) });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -897,16 +753,16 @@ app.get('/api/portal/project/:slug', requireClientAuth, async (req, res) => {
   try {
     const project = await db.getProjectBySlug(req.params.slug);
     if (!project) return res.status(404).json({ error: 'Proyecto no encontrado' });
-
+    
     // Verify access
     const access = await db.getProjectAccess(project.id);
     const hasAccess = access.some(a => a.email === req.clientUser.email);
     if (!hasAccess) return res.status(403).json({ error: 'Sin acceso a este proyecto' });
-
+    
     // Filter to public tasks only
     const publicTasks = (project.tasks || []).filter(t => t.visibility === 'public');
-
-    res.json({
+    
+    res.json({ 
       ...project,
       tasks: publicTasks,
       clientName: req.clientUser.name,
@@ -921,14 +777,13 @@ app.post('/api/portal/task/:taskId/status', requireClientAuth, async (req, res) 
   try {
     const task = await db.getTask(req.params.taskId);
     if (!task) return res.status(404).json({ error: 'Tarea no encontrada' });
-
+    
     if (task.assignedToType !== 'client') {
       return res.status(403).json({ error: 'No puedes modificar esta tarea' });
     }
-
+    
     const { status } = req.body;
     await db.updateTask(req.params.taskId, { status });
-
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -960,7 +815,7 @@ app.post('/api/portal/messages/:projectId', requireClientAuth, async (req, res) 
 
 async function syncPhaseToCalendar(accessToken, phase, project) {
   if (!phase.startDate || !phase.endDate) return null;
-
+  
   try {
     const event = {
       subject: `[Fase] ${phase.name} - ${project.name}`,
@@ -971,7 +826,7 @@ async function syncPhaseToCalendar(accessToken, phase, project) {
       showAs: 'free',
       isReminderOn: false
     };
-
+    
     if (phase.calendarEventId) {
       await graph.updateCalendarEvent(accessToken, phase.calendarEventId, event);
       return phase.calendarEventId;
@@ -985,89 +840,29 @@ async function syncPhaseToCalendar(accessToken, phase, project) {
   }
 }
 
-async function syncTaskToPlanner(accessToken, task, project) {
-  if (!project.planner?.planId) return null;
-  if (task.visibility !== 'public') return null;
-  
-  try {
-    // Obtener buckets del plan
-    const buckets = await graph.listBuckets(accessToken, project.planner.planId);
-    
-    // Seleccionar bucket según estado
-    let bucketId = buckets[0]?.id; // Default: primer bucket (Backlog)
-    if (task.status === 'in_progress' && buckets[1]) {
-      bucketId = buckets[1].id; // En progreso
-    } else if (task.status === 'completed' && buckets[2]) {
-      bucketId = buckets[2].id; // Completado
-    }
-    
-    if (task.plannerTaskId) {
-      // Actualizar tarea existente
-      await graph.updateTask(accessToken, task.plannerTaskId, {
-        title: task.title,
-        percentComplete: task.status === 'completed' ? 100 : task.status === 'in_progress' ? 50 : 0,
-        dueDateTime: task.dueDate ? task.dueDate + 'T23:59:59Z' : null
-      });
-      return task.plannerTaskId;
-    } else {
-      // Crear nueva tarea
-      const result = await graph.createTask(
-        accessToken,
-        project.planner.planId,
-        bucketId,
-        task.title,
-        task.dueDate
-      );
-      return result.id;
-    }
-  } catch (e) {
-    console.error('Error syncing task to Planner:', e.message);
-    return null;
-  }
-}
-
-async function sendClientAccessEmail(accessToken, { to, name, projectName, portalUrl, password, isResend = false }) {
+async function sendClientAccessEmail(accessToken, { to, name, projectName, portalUrl, password }) {
   const { Client } = require('@microsoft/microsoft-graph-client');
   const client = Client.init({ authProvider: (done) => done(null, accessToken) });
-
+  
   await client.api('/me/sendMail').post({
     message: {
-      subject: isResend 
-        ? `Nueva contraseña - Portal ${projectName}` 
-        : `Acceso al portal: ${projectName}`,
+      subject: `Acceso al portal: ${projectName}`,
       body: {
         contentType: 'HTML',
         content: `
-          <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
-            <div style="background: linear-gradient(135deg, #e6007e 0%, #8b37ed 100%); padding: 40px 30px; border-radius: 16px 16px 0 0; text-align: center;">
-              <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700;">Plain Vanilla</h1>
-              <p style="color: #ffffff; opacity: 0.9; margin: 10px 0 0 0; font-size: 14px;">Portal de Cliente</p>
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: linear-gradient(135deg, #e6007e 0%, #8b37ed 100%); padding: 30px; text-align: center;">
+              <h1 style="color: white; margin: 0;">Plain Vanilla</h1>
             </div>
-            <div style="background-color: #ffffff; padding: 40px 30px; border: 1px solid #eeeeee; border-top: none; border-radius: 0 0 16px 16px;">
-              <p style="color: #333333; font-size: 16px; margin: 0 0 20px 0;">Hola <strong>${name}</strong>,</p>
-              <p style="color: #666666; font-size: 15px; line-height: 1.6; margin: 0 0 20px 0;">
-                ${isResend 
-                  ? `Te enviamos una nueva contraseña para acceder al portal de tu proyecto <strong>${projectName}</strong>.`
-                  : `Te damos acceso al portal de tu proyecto <strong>${projectName}</strong>. Desde aquí podrás seguir el progreso, ver las sesiones programadas y comunicarte con nosotros.`
-                }
-              </p>
-              <div style="background-color: #f8f9fa; border-radius: 12px; padding: 24px; margin: 30px 0;">
-                <p style="margin: 0 0 15px 0; color: #666666; font-size: 14px;">Tus credenciales de acceso:</p>
-                <p style="margin: 0 0 8px 0; color: #333333;"><strong>Email:</strong> ${to}</p>
-                <p style="margin: 0; color: #333333;"><strong>Contraseña:</strong> <code style="background-color: #e9ecef; padding: 4px 8px; border-radius: 4px; font-size: 16px; color: #333333;">${password}</code></p>
+            <div style="padding: 30px; background: #f9f9f9;">
+              <p>Hola <strong>${name}</strong>,</p>
+              <p>Te damos acceso al portal de tu proyecto <strong>${projectName}</strong>.</p>
+              <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <p><strong>Email:</strong> ${to}</p>
+                <p><strong>Contraseña:</strong> <code style="background: #eee; padding: 4px 8px;">${password}</code></p>
               </div>
-              <div style="text-align: center; margin: 30px 0;">
-                <a href="${portalUrl}" style="display: inline-block; background: linear-gradient(135deg, #e6007e 0%, #8b37ed 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 15px;">
-                  Acceder al portal
-                </a>
-              </div>
-              <p style="color: #999999; font-size: 13px; margin-top: 30px;">
-                Si tienes alguna pregunta, no dudes en responder a este email.
-              </p>
+              <a href="${portalUrl}" style="display: inline-block; background: linear-gradient(135deg, #e6007e, #8b37ed); color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">Acceder al portal</a>
             </div>
-            <p style="color: #999999; font-size: 12px; text-align: center; margin-top: 20px;">
-              © ${new Date().getFullYear()} Plain Vanilla Solutions
-            </p>
           </div>
         `
       },
@@ -1092,5 +887,5 @@ app.listen(PORT, () => {
   console.log('🟣 Plain Vanilla Admin Portal');
   console.log(`📡 Puerto: ${PORT}`);
   console.log(`🌐 URL: http://localhost:${PORT}`);
-  console.log(`🗄️ Database: PostgreSQL`);
+  console.log(`🗄️  Database: PostgreSQL`);
 });

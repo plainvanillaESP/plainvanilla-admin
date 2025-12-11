@@ -14,11 +14,18 @@ const msalClient = new msal.ConfidentialClientApplication(msalConfig);
 // Scopes que necesitamos
 const SCOPES = [
   'User.Read',
+  'User.Read.All',
+  'People.Read',
+  'Contacts.Read',
+  'Mail.Read',
+  'Mail.Send',
   'Sites.ReadWrite.All',
   'Tasks.ReadWrite',
   'Calendars.ReadWrite',
   'Channel.ReadBasic.All',
-  'ChannelMessage.Send'
+  'ChannelMessage.Send',
+  'Team.ReadBasic.All',
+  'Group.Read.All'
 ];
 
 /**

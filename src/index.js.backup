@@ -1,0 +1,1298 @@
+require('dotenv').config();
+const express = require('express');
+const session = require('express-session');
+const cookieParser = require('cookie-parser');
+const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
+
+const auth = require('./auth');
+const graph = require('./graph');
+
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+const DATA_PATH = process.env.DATA_PATH || './data';
+if (!fs.existsSync(DATA_PATH)) {
+  fs.mkdirSync(DATA_PATH, { recursive: true });
+}
+
+app.set('trust proxy', 1);
+
+app.use(cors({ origin: true, credentials: true }));
+app.use(express.json());
+app.use(cookieParser());
+
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'dev-secret-change-in-prod',
+  resave: true,
+  saveUninitialized: true,
+  name: 'pv.sid',
+  cookie: {
+    secure: false,
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000
+  }
+}));
+
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  next();
+});
+
+app.use('/admin', express.static(path.join(__dirname, '../public/admin')));
+
+// ============================================
+// AUTH ROUTES
+// ============================================
+
+app.get('/auth/login', async (req, res) => {
+  try {
+    const authUrl = await auth.getAuthUrl();
+    res.redirect(authUrl);
+  } catch (error) {
+    console.error('Error login:', error);
+    res.status(500).json({ error: 'Error iniciando autenticación' });
+  }
+});
+
+app.get('/auth/callback', async (req, res) => {
+  try {
+    const { code, error, error_description } = req.query;
+    if (error) return res.send(`<h1>Error</h1><p>${error_description || error}</p><a href="/admin/">Volver</a>`);
+    if (!code) return res.status(400).json({ error: 'No se recibió código' });
+
+    const tokenResponse = await auth.getTokenFromCode(code);
+    const userInfo = await graph.getMe(tokenResponse.accessToken);
+
+    const allowedDomain = process.env.ALLOWED_DOMAIN;
+    const userEmail = userInfo.mail || userInfo.userPrincipalName;
+    
+    if (allowedDomain && !userEmail?.toLowerCase().endsWith(`@${allowedDomain.toLowerCase()}`)) {
+      return res.send(`<h1>Acceso denegado</h1><p>Solo @${allowedDomain}</p>`);
+    }
+
+    req.session.user = {
+      id: userInfo.id,
+      name: userInfo.displayName,
+      email: userEmail,
+      accessToken: tokenResponse.accessToken,
+      expiresAt: Date.now() + 3600000
+    };
+
+    req.session.save((err) => {
+      if (err) console.error('Error sesión:', err);
+      res.redirect('/admin/');
+    });
+  } catch (error) {
+    console.error('Error callback:', error.message);
+    res.send(`<h1>Error</h1><pre>${error.message}</pre><a href="/admin/">Volver</a>`);
+  }
+});
+
+app.get('/auth/logout', (req, res) => {
+  req.session.destroy();
+  res.redirect('/admin/');
+});
+
+app.get('/api/me', (req, res) => {
+  if (!req.session.user) return res.status(401).json({ error: 'No autenticado' });
+  if (Date.now() > req.session.user.expiresAt) return res.status(401).json({ error: 'Sesión expirada' });
+  res.json({ id: req.session.user.id, name: req.session.user.name, email: req.session.user.email });
+});
+
+function requireAuth(req, res, next) {
+  if (!req.session.user) return res.status(401).json({ error: 'No autenticado' });
+  next();
+}
+
+// ============================================
+// PROJECTS CRUD
+// ============================================
+
+const projectsFile = path.join(DATA_PATH, 'projects.json');
+
+function loadProjects() {
+  if (!fs.existsSync(projectsFile)) return [];
+  try { return JSON.parse(fs.readFileSync(projectsFile, 'utf8')); } catch { return []; }
+}
+
+function saveProjects(p) { 
+  fs.writeFileSync(projectsFile, JSON.stringify(p, null, 2)); 
+}
+
+function getProject(id) {
+  return loadProjects().find(p => p.id === id);
+}
+
+function updateProject(id, updates) {
+  const projects = loadProjects();
+  const index = projects.findIndex(p => p.id === id);
+  if (index === -1) return null;
+  projects[index] = { ...projects[index], ...updates, updatedAt: new Date().toISOString() };
+  saveProjects(projects);
+  return projects[index];
+}
+
+app.get('/api/projects', requireAuth, (req, res) => {
+  res.json(loadProjects());
+});
+
+app.get('/api/projects/:id', requireAuth, (req, res) => {
+  const project = getProject(req.params.id);
+  if (!project) return res.status(404).json({ error: 'Proyecto no encontrado' });
+  res.json(project);
+});
+
+app.post('/api/projects', requireAuth, async (req, res) => {
+  try {
+    const { name, client, clientSlug, description } = req.body;
+    if (!name || !client) return res.status(400).json({ error: 'Nombre y cliente requeridos' });
+
+    const slug = clientSlug || client.toLowerCase()
+      .replace(/[áàäâ]/g, 'a').replace(/[éèëê]/g, 'e').replace(/[íìïî]/g, 'i')
+      .replace(/[óòöô]/g, 'o').replace(/[úùüû]/g, 'u').replace(/ñ/g, 'n')
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+    const project = {
+      id: require('crypto').randomUUID(),
+      name,
+      slug,
+      client,
+      description: description || '',
+      status: 'active',
+      createdAt: new Date().toISOString(),
+      createdBy: req.session.user.email,
+      sharepoint: null,
+      planner: null,
+      teams: null
+    };
+
+    const projects = loadProjects();
+    projects.push(project);
+    saveProjects(projects);
+
+    console.log(`✅ Proyecto creado: ${name}`);
+    res.status(201).json(project);
+  } catch (error) {
+    console.error('Error creando proyecto:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/projects/:id', requireAuth, (req, res) => {
+  const project = updateProject(req.params.id, req.body);
+  if (!project) return res.status(404).json({ error: 'Proyecto no encontrado' });
+  res.json(project);
+});
+
+app.delete('/api/projects/:id', requireAuth, (req, res) => {
+  const projects = loadProjects();
+  const index = projects.findIndex(p => p.id === req.params.id);
+  if (index === -1) return res.status(404).json({ error: 'Proyecto no encontrado' });
+  projects.splice(index, 1);
+  saveProjects(projects);
+  res.json({ success: true });
+});
+
+// ============================================
+// PROJECT PHASES
+// ============================================
+
+app.get('/api/projects/:id/phases', requireAuth, (req, res) => {
+  const project = getProject(req.params.id);
+  if (!project) return res.status(404).json({ error: 'Proyecto no encontrado' });
+  res.json(project.phases || []);
+});
+
+app.post('/api/projects/:id/phases', requireAuth, async (req, res) => {
+  const project = getProject(req.params.id);
+  if (!project) return res.status(404).json({ error: 'Proyecto no encontrado' });
+  
+  const { name, description, order } = req.body;
+  const phase = {
+    id: require('crypto').randomUUID(),
+    name,
+    description: description || '',
+    order: order || (project.phases?.length || 0),
+    status: 'pending', // pending, active, completed
+    createdAt: new Date().toISOString()
+  };
+  
+  const phases = [...(project.phases || []), phase];
+  
+  // Sincronizar con calendario de Microsoft
+  if (req.session.user?.accessToken && phase.startDate && phase.endDate) {
+    const calendarEventId = await syncPhaseToCalendar(req.session.user.accessToken, phase, project);
+    if (calendarEventId) {
+      phase.calendarEventId = calendarEventId;
+    }
+  }
+  
+  updateProject(req.params.id, { phases });
+  res.json(phase);
+});
+
+app.put('/api/projects/:id/phases/:phaseId', requireAuth, async (req, res) => {
+  const project = getProject(req.params.id);
+  if (!project) return res.status(404).json({ error: 'Proyecto no encontrado' });
+  
+  const { name, description, startDate, endDate, status, order } = req.body;
+  let updatedPhase = null;
+  const phases = (project.phases || []).map(p => {
+    if (p.id === req.params.phaseId) {
+      updatedPhase = { ...p, name: name ?? p.name, description: description ?? p.description, startDate: startDate ?? p.startDate, endDate: endDate ?? p.endDate, status: status ?? p.status, order: order ?? p.order, updatedAt: new Date().toISOString() };
+      return updatedPhase;
+    }
+    return p;
+  });
+  
+  // Sincronizar con calendario de Microsoft
+  if (req.session.user?.accessToken && updatedPhase && (updatedPhase.startDate || updatedPhase.endDate)) {
+    const calendarEventId = await syncPhaseToCalendar(req.session.user.accessToken, updatedPhase, project);
+    if (calendarEventId && !updatedPhase.calendarEventId) {
+      updatedPhase.calendarEventId = calendarEventId;
+      // Actualizar de nuevo con el calendarEventId
+      const finalPhases = phases.map(p => p.id === req.params.phaseId ? updatedPhase : p);
+      updateProject(req.params.id, { phases: finalPhases });
+      res.json(updatedPhase);
+      return;
+    }
+  }
+  
+  updateProject(req.params.id, { phases });
+  res.json(updatedPhase);
+});
+
+app.delete('/api/projects/:id/phases/:phaseId', requireAuth, async (req, res) => {
+  const project = getProject(req.params.id);
+  if (!project) return res.status(404).json({ error: 'Proyecto no encontrado' });
+  
+  const phaseToDelete = (project.phases || []).find(p => p.id === req.params.phaseId);
+  
+  // Eliminar del calendario de Microsoft
+  if (req.session.user?.accessToken && phaseToDelete?.calendarEventId) {
+    await deletePhaseFromCalendar(req.session.user.accessToken, phaseToDelete.calendarEventId);
+  }
+  
+  const phases = (project.phases || []).filter(p => p.id !== req.params.phaseId);
+  updateProject(req.params.id, { phases });
+  res.json({ success: true });
+});
+
+// ============================================
+// PROJECT SESSIONS
+// ============================================
+
+app.get('/api/projects/:id/sessions', requireAuth, (req, res) => {
+  const project = getProject(req.params.id);
+  if (!project) return res.status(404).json({ error: 'Proyecto no encontrado' });
+  res.json(project.sessions || []);
+});
+
+app.post('/api/projects/:id/sessions', requireAuth, async (req, res) => {
+  const project = getProject(req.params.id);
+  if (!project) return res.status(404).json({ error: 'Proyecto no encontrado' });
+  
+  const { title, date, time, duration, type, location, teamsLink, phaseId, description } = req.body;
+  let teamsData = null;
+  
+  // Si es online y hay token, crear reunión en Teams
+  if (type === 'online' && req.session.user?.accessToken) {
+    try {
+      const startDateTime = `${date}T${time}:00`;
+      const endDate = new Date(`${date}T${time}`);
+      endDate.setMinutes(endDate.getMinutes() + (duration || 60));
+      const endDateTime = endDate.toISOString().slice(0, 19);
+      
+      const attendees = req.body.attendees || [];
+      teamsData = await graph.createOnlineMeeting(req.session.user.accessToken, title, startDateTime, endDateTime, attendees);
+    } catch (err) {
+      console.error('Error creando reunión Teams:', err.message);
+    }
+  }
+  
+  const session = {
+    id: require('crypto').randomUUID(),
+    title,
+    date,
+    time,
+    duration: duration || 60,
+    type: type || 'online',
+    location: location || '',
+    teamsLink: teamsData?.joinUrl || teamsLink || '',
+    teamsEventId: teamsData?.id || null,
+    phaseId: phaseId || null,
+    description: description || '',
+    attendees: req.body.attendees || [],
+    status: 'scheduled',
+    createdAt: new Date().toISOString()
+  };
+  
+  const sessions = [...(project.sessions || []), session];
+  updateProject(req.params.id, { sessions });
+  res.json(session);
+});
+
+app.put('/api/projects/:id/sessions/:sessionId', requireAuth, async (req, res) => {
+  try {
+    const project = getProject(req.params.id);
+    if (!project) return res.status(404).json({ error: 'Proyecto no encontrado' });
+    
+    const currentSession = (project.sessions || []).find(s => s.id === req.params.sessionId);
+    if (!currentSession) return res.status(404).json({ error: 'Sesión no encontrada' });
+    
+    const updatedData = { ...req.body, updatedAt: new Date().toISOString() };
+    
+    // Si tiene evento en Teams y cambió fecha/hora, actualizar en Teams
+    if (currentSession.teamsEventId && req.session.user?.accessToken) {
+      const { date, time, title, duration } = { ...currentSession, ...updatedData };
+      
+      if (date && time) {
+        try {
+          const { Client } = require('@microsoft/microsoft-graph-client');
+          const client = Client.init({ authProvider: (done) => done(null, req.session.user.accessToken) });
+          
+          const startDateTime = date + 'T' + time + ':00';
+          const endDate = new Date(date + 'T' + time);
+          endDate.setMinutes(endDate.getMinutes() + (duration || 60));
+          const endDateTime = endDate.toISOString().slice(0, 19);
+          
+          const sendNotification = req.body.notifyAttendees !== false;
+          await client.api('/me/events/' + currentSession.teamsEventId)
+            .header('Prefer', 'outlook.timezone="Europe/Madrid"')
+            .patch({
+              subject: title || currentSession.title,
+              start: { dateTime: startDateTime, timeZone: 'Europe/Madrid' },
+              end: { dateTime: endDateTime, timeZone: 'Europe/Madrid' }
+            });
+          
+          // Si hay que notificar, cancelar y recrear envía notificación
+          if (sendNotification) {
+            // Graph API envía notificaciones automáticamente al hacer patch
+            console.log('Attendees will be notified of changes');
+          }
+          console.log('Teams event updated:', currentSession.teamsEventId);
+        } catch (e) {
+          console.error('Error updating Teams event:', e.message);
+        }
+      }
+    }
+    
+    const sessions = (project.sessions || []).map(s => 
+      s.id === req.params.sessionId ? { ...s, ...updatedData } : s
+    );
+    updateProject(req.params.id, { sessions });
+    res.json(sessions.find(s => s.id === req.params.sessionId));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/projects/:id/sessions/:sessionId', requireAuth, async (req, res) => {
+  const project = getProject(req.params.id);
+  if (!project) return res.status(404).json({ error: 'Proyecto no encontrado' });
+  
+  const sessionToDelete = (project.sessions || []).find(s => s.id === req.params.sessionId);
+  
+  // Eliminar evento de Teams/Calendar si existe
+  if (req.session.user?.accessToken && sessionToDelete?.teamsEventId) {
+    try {
+      const { Client } = require('@microsoft/microsoft-graph-client');
+      const client = Client.init({ authProvider: (done) => done(null, req.session.user.accessToken) });
+      await client.api(`/me/events/${sessionToDelete.teamsEventId}`).delete();
+      console.log('Session calendar event deleted:', sessionToDelete.teamsEventId);
+    } catch (e) {
+      console.error('Error deleting session from calendar:', e.message);
+    }
+  }
+  
+  const sessions = (project.sessions || []).filter(s => s.id !== req.params.sessionId);
+  updateProject(req.params.id, { sessions });
+  res.json({ success: true });
+});
+
+// ============================================
+// MICROSOFT 365 - SHAREPOINT
+// ============================================
+
+app.get('/api/sharepoint/root', requireAuth, async (req, res) => {
+  try {
+    const site = await graph.getRootSite(req.session.user.accessToken);
+    res.json(site);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/sharepoint/sites', requireAuth, async (req, res) => {
+  try {
+    const sites = await graph.searchSite(req.session.user.accessToken, req.query.q || '');
+    res.json(sites);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/projects/:id/sharepoint', requireAuth, async (req, res) => {
+  try {
+    const project = getProject(req.params.id);
+    if (!project) return res.status(404).json({ error: 'Proyecto no encontrado' });
+
+    const { siteId } = req.body;
+    if (!siteId) return res.status(400).json({ error: 'siteId requerido' });
+
+    const clientFolder = await graph.createFolder(req.session.user.accessToken, siteId, project.client, 'root');
+    const projectFolder = await graph.createFolder(req.session.user.accessToken, siteId, project.name, clientFolder.id);
+
+    const updated = updateProject(project.id, {
+      sharepoint: { siteId, folderId: projectFolder.id, folderUrl: projectFolder.webUrl, clientFolderId: clientFolder.id }
+    });
+
+    console.log(`✅ SharePoint conectado: ${project.name}`);
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/projects/:id/files', requireAuth, async (req, res) => {
+  try {
+    const project = getProject(req.params.id);
+    if (!project?.sharepoint) return res.json([]);
+
+    const files = await graph.listFiles(req.session.user.accessToken, project.sharepoint.siteId, project.sharepoint.folderId);
+    res.json(files);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================
+// MICROSOFT 365 - TEAMS
+// ============================================
+
+app.get('/api/teams', requireAuth, async (req, res) => {
+  try {
+    const teams = await graph.listMyTeams(req.session.user.accessToken);
+    res.json(teams);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/teams/:teamId/channels', requireAuth, async (req, res) => {
+  try {
+    const channels = await graph.listChannels(req.session.user.accessToken, req.params.teamId);
+    res.json(channels);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/projects/:id/teams', requireAuth, async (req, res) => {
+  try {
+    const project = getProject(req.params.id);
+    if (!project) return res.status(404).json({ error: 'Proyecto no encontrado' });
+
+    const { teamId } = req.body;
+    if (!teamId) return res.status(400).json({ error: 'teamId requerido' });
+
+    const channelName = `${project.client} - ${project.name}`;
+    const channel = await graph.createChannel(req.session.user.accessToken, teamId, channelName, project.description);
+
+    await graph.sendChannelMessage(req.session.user.accessToken, teamId, channel.id,
+      `🚀 <b>Proyecto iniciado:</b> ${project.name}<br>Cliente: ${project.client}<br>Creado por: ${req.session.user.name}`);
+
+    const updated = updateProject(project.id, {
+      teams: { teamId, channelId: channel.id, channelName: channel.displayName, channelUrl: channel.webUrl }
+    });
+
+    console.log(`✅ Canal Teams creado: ${channelName}`);
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================
+// MICROSOFT 365 - PLANNER
+// ============================================
+
+app.get('/api/groups', requireAuth, async (req, res) => {
+  try {
+    const groups = await graph.listMyGroups(req.session.user.accessToken);
+    res.json(groups);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/groups/:groupId/plans', requireAuth, async (req, res) => {
+  try {
+    const plans = await graph.listPlans(req.session.user.accessToken, req.params.groupId);
+    res.json(plans);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/projects/:id/planner', requireAuth, async (req, res) => {
+  try {
+    const project = getProject(req.params.id);
+    if (!project) return res.status(404).json({ error: 'Proyecto no encontrado' });
+
+    const { groupId } = req.body;
+    if (!groupId) return res.status(400).json({ error: 'groupId requerido' });
+
+    const plan = await graph.createPlan(req.session.user.accessToken, groupId, `${project.client} - ${project.name}`);
+
+    const buckets = [];
+    for (const name of ['📋 Backlog', '🔄 En progreso', '✅ Completado']) {
+      const b = await graph.createBucket(req.session.user.accessToken, plan.id, name);
+      buckets.push({ id: b.id, name: b.name });
+    }
+
+    const updated = updateProject(project.id, {
+      planner: { groupId, planId: plan.id, planTitle: plan.title, buckets }
+    });
+
+    console.log(`✅ Plan Planner creado: ${plan.title}`);
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+// ===== TAREAS LOCALES =====
+
+// Obtener tareas del proyecto (locales)
+app.get('/api/projects/:id/tasks-local', requireAuth, (req, res) => {
+  const project = getProject(req.params.id);
+  if (!project) return res.status(404).json({ error: 'Proyecto no encontrado' });
+  res.json(project.tasks || []);
+});
+
+// Crear tarea local
+app.post('/api/projects/:id/tasks', requireAuth, async (req, res) => {
+  const project = getProject(req.params.id);
+  if (!project) return res.status(404).json({ error: 'Proyecto no encontrado' });
+  
+  const { title, description, dueDate, phaseId, visibility, assignedToType, assignedTo, priority } = req.body;
+  
+  const task = {
+    id: require('crypto').randomUUID(),
+    title,
+    description: description || '',
+    dueDate: dueDate || null,
+    phaseId: phaseId || null,
+    visibility: visibility || 'public',
+    assignedToType: assignedToType || null,
+    assignedTo: assignedTo || null,
+    priority: priority || 'medium',
+    status: 'pending',
+    createdAt: new Date().toISOString(),
+    createdBy: req.session.user.email
+  };
+  
+  const tasks = [...(project.tasks || []), task];
+  updateProject(req.params.id, { tasks });
+  res.status(201).json(task);
+});
+
+// Actualizar tarea
+app.put('/api/projects/:id/tasks/:taskId', requireAuth, async (req, res) => {
+  const project = getProject(req.params.id);
+  if (!project) return res.status(404).json({ error: 'Proyecto no encontrado' });
+  
+  const { title, description, dueDate, phaseId, visibility, assignedToType, assignedTo, priority, status } = req.body;
+  
+  let updatedTask = null;
+  const tasks = (project.tasks || []).map(t => {
+    if (t.id === req.params.taskId) {
+      updatedTask = {
+        ...t,
+        title: title ?? t.title,
+        description: description ?? t.description,
+        dueDate: dueDate !== undefined ? dueDate : t.dueDate,
+        phaseId: phaseId !== undefined ? phaseId : t.phaseId,
+        visibility: visibility ?? t.visibility,
+        assignedToType: assignedToType !== undefined ? assignedToType : t.assignedToType,
+        assignedTo: assignedTo !== undefined ? assignedTo : t.assignedTo,
+        priority: priority ?? t.priority,
+        status: status ?? t.status,
+        updatedAt: new Date().toISOString()
+      };
+      return updatedTask;
+    }
+    return t;
+  });
+  
+  updateProject(req.params.id, { tasks });
+  res.json(updatedTask);
+});
+
+// Eliminar tarea
+app.delete('/api/projects/:id/tasks/:taskId', requireAuth, async (req, res) => {
+  const project = getProject(req.params.id);
+  if (!project) return res.status(404).json({ error: 'Proyecto no encontrado' });
+  
+  const tasks = (project.tasks || []).filter(t => t.id !== req.params.taskId);
+  updateProject(req.params.id, { tasks });
+  res.json({ success: true });
+});
+
+
+
+    const { title, bucketId } = req.body;
+    if (!title) return res.status(400).json({ error: 'Título requerido' });
+
+    const task = await graph.createTask(req.session.user.accessToken, project.planner.planId, bucketId || project.planner.buckets[0].id, title);
+    res.status(201).json(task);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================
+// SETUP ALL (SharePoint + Planner + Teams)
+// ============================================
+
+app.post('/api/projects/:id/setup-all', requireAuth, async (req, res) => {
+  try {
+    const project = getProject(req.params.id);
+    if (!project) return res.status(404).json({ error: 'Proyecto no encontrado' });
+
+    const { siteId, groupId, teamId } = req.body;
+    const results = { sharepoint: null, planner: null, teams: null, errors: [] };
+
+    if (siteId && !project.sharepoint) {
+      try {
+        const clientFolder = await graph.createFolder(req.session.user.accessToken, siteId, project.client, 'root');
+        const projectFolder = await graph.createFolder(req.session.user.accessToken, siteId, project.name, clientFolder.id);
+        results.sharepoint = { siteId, folderId: projectFolder.id, folderUrl: projectFolder.webUrl };
+      } catch (e) { results.errors.push(`SharePoint: ${e.message}`); }
+    }
+
+    if (groupId && !project.planner) {
+      try {
+        const plan = await graph.createPlan(req.session.user.accessToken, groupId, `${project.client} - ${project.name}`);
+        const buckets = [];
+        for (const name of ['📋 Backlog', '🔄 En progreso', '✅ Completado']) {
+          const b = await graph.createBucket(req.session.user.accessToken, plan.id, name);
+          buckets.push({ id: b.id, name: b.name });
+        }
+        results.planner = { groupId, planId: plan.id, planTitle: plan.title, buckets };
+      } catch (e) { results.errors.push(`Planner: ${e.message}`); }
+    }
+
+    if (teamId && !project.teams) {
+      try {
+        const channel = await graph.createChannel(req.session.user.accessToken, teamId, `${project.client} - ${project.name}`, project.description);
+        await graph.sendChannelMessage(req.session.user.accessToken, teamId, channel.id, `🚀 <b>Proyecto iniciado:</b> ${project.name}<br>Cliente: ${project.client}`);
+        results.teams = { teamId, channelId: channel.id, channelName: channel.displayName };
+      } catch (e) { results.errors.push(`Teams: ${e.message}`); }
+    }
+
+    const updated = updateProject(project.id, {
+      sharepoint: results.sharepoint || project.sharepoint,
+      planner: results.planner || project.planner,
+      teams: results.teams || project.teams
+    });
+
+    res.json({ project: updated, results });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================
+// CLIENT ACCESS TOKENS
+// ============================================
+
+const clientTokensFile = path.join(DATA_PATH, 'client-tokens.json');
+function loadClientTokens() { if (!fs.existsSync(clientTokensFile)) return {}; try { return JSON.parse(fs.readFileSync(clientTokensFile, 'utf8')); } catch { return {}; } }
+function saveClientTokens(t) { fs.writeFileSync(clientTokensFile, JSON.stringify(t, null, 2)); }
+
+app.post('/api/projects/:id/client-access', requireAuth, async (req, res) => {
+  try {
+    const project = getProject(req.params.id);
+    if (!project) return res.status(404).json({ error: 'Proyecto no encontrado' });
+
+    const { email, name, permissions = ['files', 'tasks'], sendEmail = true } = req.body;
+    const password = require('crypto').randomBytes(4).toString('hex').toUpperCase(); // 8 chars
+    const token = require('crypto').randomBytes(32).toString('hex');
+    const passwordHash = require('crypto').createHash('sha256').update(password).digest('hex');
+    
+    const tokens = loadClientTokens();
+    tokens[token] = { 
+      projectId: project.id, 
+      email, 
+      name: name || email, 
+      passwordHash,
+      permissions, 
+      createdAt: new Date().toISOString(), 
+      createdBy: req.session.user.email 
+    };
+    saveClientTokens(tokens);
+
+    const portalUrl = `${process.env.BASE_URL}/portal/${project.slug}`;
+    
+    // Enviar email si se solicita
+    if (sendEmail && req.session.user?.accessToken) {
+      try {
+        const { Client } = require('@microsoft/microsoft-graph-client');
+        const client = Client.init({ authProvider: (done) => done(null, req.session.user.accessToken) });
+        
+        await client.api('/me/sendMail').post({
+          message: {
+            subject: `Acceso al portal de tu proyecto: ${project.name}`,
+            body: {
+              contentType: 'HTML',
+              content: `
+                <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+                  <div style="background: linear-gradient(135deg, #ff94a6 0%, #8b37ed 100%); padding: 40px 30px; border-radius: 16px 16px 0 0; text-align: center;">
+                    <h1 style="color: #ffffff !important; margin: 0; font-size: 24px; font-weight: 700;">Plain Vanilla</h1>
+                    <p style="color: #ffffff !important; opacity: 0.9; margin: 10px 0 0 0; font-size: 14px;">Portal de Cliente</p>
+                  </div>
+                  <div style="background-color: #ffffff; padding: 40px 30px; border: 1px solid #eeeeee; border-top: none; border-radius: 0 0 16px 16px;">
+                    <p style="color: #333333; font-size: 16px; margin: 0 0 20px 0;">Hola <strong>${name || email}</strong>,</p>
+                    <p style="color: #666666; font-size: 15px; line-height: 1.6; margin: 0 0 20px 0;">
+                      Te damos acceso al portal de tu proyecto <strong>${project.name}</strong>. 
+                      Desde aquí podrás seguir el progreso, ver las sesiones programadas y comunicarte con nosotros.
+                    </p>
+                    
+                    <div style="background-color: #f8f9fa; border-radius: 12px; padding: 24px; margin: 30px 0;">
+                      <p style="margin: 0 0 15px 0; color: #666666; font-size: 14px;">Tus credenciales de acceso:</p>
+                      <p style="margin: 0 0 8px 0; color: #333333;"><strong>Email:</strong> ${email}</p>
+                      <p style="margin: 0; color: #333333;"><strong>Contraseña:</strong> <code style="background-color: #e9ecef; padding: 4px 8px; border-radius: 4px; font-size: 16px; color: #333333;">${password}</code></p>
+                    </div>
+                    
+                    <div style="text-align: center; margin: 30px 0;">
+                      <a href="${portalUrl}" style="display: inline-block; background: linear-gradient(135deg, #ff94a6 0%, #8b37ed 100%); color: #ffffff !important; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 15px; mso-padding-alt: 14px 32px;">
+                        <!--[if mso]><i style="letter-spacing: 32px; mso-font-width: -100%; mso-text-raise: 30pt;">&nbsp;</i><![endif]-->
+                        <span style="color: #ffffff !important;">Acceder al portal</span>
+                        <!--[if mso]><i style="letter-spacing: 32px; mso-font-width: -100%;">&nbsp;</i><![endif]-->
+                      </a>
+                    </div>
+                    
+                    <p style="color: #999999; font-size: 13px; margin-top: 30px;">
+                      Si tienes alguna pregunta, no dudes en responder a este email.
+                    </p>
+                  </div>
+                  <p style="color: #999999; font-size: 12px; text-align: center; margin-top: 20px;">
+                    © ${new Date().getFullYear()} Plain Vanilla Solutions
+                  </p>
+                </div>
+              `
+            },
+            toRecipients: [{ emailAddress: { address: email } }]
+          },
+          saveToSentItems: true
+        });
+        console.log('Email enviado a:', email);
+      } catch (e) {
+        console.error('Error enviando email:', e.message);
+      }
+    }
+
+    res.json({ token, url: portalUrl, password, emailSent: sendEmail });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/projects/:id/client-access', requireAuth, (req, res) => {
+  const tokens = loadClientTokens();
+  const list = Object.entries(tokens).filter(([_, v]) => v.projectId === req.params.id).map(([t, d]) => ({ token: t.slice(0, 8) + '...', ...d }));
+  res.json(list);
+});
+
+app.delete('/api/projects/:id/client-access/:token', requireAuth, (req, res) => {
+  const tokens = loadClientTokens();
+  const full = Object.keys(tokens).find(t => t.startsWith(req.params.token));
+  if (full) { delete tokens[full]; saveClientTokens(tokens); }
+  res.json({ success: true });
+});
+
+app.post('/api/projects/:id/client-access/:token/resend', requireAuth, async (req, res) => {
+  try {
+    const project = getProject(req.params.id);
+    if (!project) return res.status(404).json({ error: 'Proyecto no encontrado' });
+    
+    const tokens = loadClientTokens();
+    const fullToken = Object.keys(tokens).find(t => t.startsWith(req.params.token));
+    if (!fullToken) return res.status(404).json({ error: 'Acceso no encontrado' });
+    
+    const access = tokens[fullToken];
+    const { email, name } = access;
+    
+    // Generar nueva contraseña
+    const password = require('crypto').randomBytes(4).toString('hex').toUpperCase();
+    const passwordHash = require('crypto').createHash('sha256').update(password).digest('hex');
+    
+    // Actualizar token con nueva contraseña
+    tokens[fullToken].passwordHash = passwordHash;
+    saveClientTokens(tokens);
+    
+    const portalUrl = `${process.env.BASE_URL}/portal/${project.slug}`;
+    
+    // Enviar email
+    if (req.session.user?.accessToken) {
+      try {
+        const { Client } = require('@microsoft/microsoft-graph-client');
+        const client = Client.init({ authProvider: (done) => done(null, req.session.user.accessToken) });
+        
+        await client.api('/me/sendMail').post({
+          message: {
+            subject: `Nuevo acceso al portal: ${project.name}`,
+            body: {
+              contentType: 'HTML',
+              content: `
+                <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+                  <div style="background: linear-gradient(135deg, #ff94a6 0%, #8b37ed 100%); padding: 40px 30px; border-radius: 16px 16px 0 0; text-align: center;">
+                    <h1 style="color: #ffffff !important; margin: 0; font-size: 24px; font-weight: 700;">Plain Vanilla</h1>
+                    <p style="color: #ffffff !important; opacity: 0.9; margin: 10px 0 0 0; font-size: 14px;">Portal de Cliente</p>
+                  </div>
+                  <div style="background-color: #ffffff; padding: 40px 30px; border: 1px solid #eeeeee; border-top: none; border-radius: 0 0 16px 16px;">
+                    <p style="color: #333333; font-size: 16px; margin: 0 0 20px 0;">Hola <strong>${name || email}</strong>,</p>
+                    <p style="color: #666666; font-size: 15px; line-height: 1.6; margin: 0 0 20px 0;">
+                      Te enviamos nuevas credenciales para acceder al portal de tu proyecto <strong>${project.name}</strong>.
+                    </p>
+                    
+                    <div style="background-color: #f8f9fa; border-radius: 12px; padding: 24px; margin: 30px 0;">
+                      <p style="margin: 0 0 15px 0; color: #666666; font-size: 14px;">Tus nuevas credenciales:</p>
+                      <p style="margin: 0 0 8px 0; color: #333333;"><strong>Email:</strong> ${email}</p>
+                      <p style="margin: 0; color: #333333;"><strong>Contraseña:</strong> <code style="background-color: #e9ecef; padding: 4px 8px; border-radius: 4px; font-size: 16px; color: #333333;">${password}</code></p>
+                    </div>
+                    
+                    <div style="text-align: center; margin: 30px 0;">
+                      <a href="${portalUrl}" style="display: inline-block; background: linear-gradient(135deg, #ff94a6 0%, #8b37ed 100%); color: #ffffff !important; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 15px;">
+                        <span style="color: #ffffff !important;">Acceder al portal</span>
+                      </a>
+                    </div>
+                    
+                    <p style="color: #999999; font-size: 13px; margin-top: 30px;">
+                      Si tienes alguna pregunta, no dudes en responder a este email.
+                    </p>
+                  </div>
+                  <p style="color: #999999; font-size: 12px; text-align: center; margin-top: 20px;">
+                    © ${new Date().getFullYear()} Plain Vanilla Solutions
+                  </p>
+                </div>
+              `
+            },
+            toRecipients: [{ emailAddress: { address: email } }]
+          },
+          saveToSentItems: true
+        });
+      } catch (e) {
+        console.error('Error enviando email:', e.message);
+        return res.status(500).json({ error: 'Error enviando email: ' + e.message });
+      }
+    }
+    
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================
+// PORTAL (public)
+// ============================================
+
+app.use('/portal', express.static(path.join(__dirname, '../public/portal')));
+app.get('/portal/*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/portal/index.html'));
+});
+
+function requireClientToken(req, res, next) {
+  const token = req.query.token || req.headers['x-client-token'];
+  if (!token) return res.status(401).json({ error: 'Token requerido' });
+  const tokens = loadClientTokens();
+  const access = tokens[token];
+  if (!access) return res.status(401).json({ error: 'Token inválido' });
+  req.clientAccess = access;
+  next();
+}
+
+app.post('/api/portal/login', (req, res) => {
+  try {
+    const { email, password, slug } = req.body;
+    if (!email || !password) return res.status(400).json({ error: 'Email y contraseña requeridos' });
+    
+    const passwordHash = require('crypto').createHash('sha256').update(password).digest('hex');
+    const tokens = loadClientTokens();
+    
+    // Buscar token que coincida con email y password
+    const entry = Object.entries(tokens).find(([_, v]) => 
+      v.email.toLowerCase() === email.toLowerCase() && v.passwordHash === passwordHash
+    );
+    
+    if (!entry) return res.status(401).json({ error: 'Credenciales incorrectas' });
+    
+    const [token, access] = entry;
+    const project = getProject(access.projectId);
+    
+    // Verificar que el slug coincide si se proporciona
+    if (slug && project?.slug !== slug) {
+      return res.status(401).json({ error: 'No tienes acceso a este proyecto' });
+    }
+    
+    res.json({ token, projectSlug: project?.slug });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/portal/login', (req, res) => {
+  try {
+    const { email, password, slug } = req.body;
+    if (!email || !password) return res.status(400).json({ error: 'Email y contraseña requeridos' });
+    
+    const passwordHash = require('crypto').createHash('sha256').update(password).digest('hex');
+    const tokens = loadClientTokens();
+    
+    // Buscar token que coincida con email y password
+    const entry = Object.entries(tokens).find(([_, v]) => 
+      v.email.toLowerCase() === email.toLowerCase() && v.passwordHash === passwordHash
+    );
+    
+    if (!entry) return res.status(401).json({ error: 'Credenciales incorrectas' });
+    
+    const [token, access] = entry;
+    const project = getProject(access.projectId);
+    
+    // Verificar que el slug coincide si se proporciona
+    if (slug && project?.slug !== slug) {
+      return res.status(401).json({ error: 'No tienes acceso a este proyecto' });
+    }
+    
+    res.json({ token, projectSlug: project?.slug });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/portal/project', requireClientToken, (req, res) => {
+  const project = getProject(req.clientAccess.projectId);
+  if (!project) return res.status(404).json({ error: 'Proyecto no encontrado' });
+  
+  res.json({ 
+    name: project.name, 
+    client: project.client, 
+    description: project.description, 
+    status: project.status, 
+    hasFiles: !!project.sharepoint,
+    hasTasks: !!project.planner,
+    hasTeams: !!project.teams,
+    teamsChannelUrl: project.teams ? `https://teams.microsoft.com/l/channel/${project.teams.channelId}/` : null,
+    phases: (project.phases || []).sort((a,b) => a.order - b.order),
+    sessions: (project.sessions || []).sort((a,b) => new Date(a.date) - new Date(b.date)),
+    permissions: req.clientAccess.permissions,
+    clientName: req.clientAccess.name
+  });
+});
+
+// Endpoint para obtener documentos del portal
+app.get('/api/portal/files', requireClientToken, async (req, res) => {
+  try {
+    const project = getProject(req.clientAccess.projectId);
+    if (!project?.sharepoint) return res.json([]);
+    
+    // Necesitamos un token de servicio para acceder a SharePoint
+    // Por ahora devolvemos info básica con link a la carpeta
+    res.json({ 
+      folderUrl: project.sharepoint.folderUrl,
+      files: [] // TODO: implementar con service account
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Endpoint para enviar mensaje al canal de Teams
+app.post('/api/portal/message', requireClientToken, async (req, res) => {
+  try {
+    const project = getProject(req.clientAccess.projectId);
+    if (!project?.teams) return res.status(400).json({ error: 'Proyecto sin canal de Teams' });
+    
+    const { message } = req.body;
+    if (!message) return res.status(400).json({ error: 'Mensaje requerido' });
+    
+    // Guardar mensaje localmente (se sincronizará con Teams cuando un admin esté conectado)
+    const messagesFile = path.join(DATA_PATH, 'portal-messages.json');
+    let messages = [];
+    if (fs.existsSync(messagesFile)) {
+      try { messages = JSON.parse(fs.readFileSync(messagesFile, 'utf8')); } catch {}
+    }
+    
+    messages.push({
+      id: require('crypto').randomUUID(),
+      projectId: project.id,
+      from: req.clientAccess.name,
+      email: req.clientAccess.email,
+      message,
+      createdAt: new Date().toISOString(),
+      synced: false
+    });
+    
+    fs.writeFileSync(messagesFile, JSON.stringify(messages, null, 2));
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Endpoint para obtener mensajes del portal
+app.get('/api/portal/messages', requireClientToken, (req, res) => {
+  try {
+    const project = getProject(req.clientAccess.projectId);
+    const messagesFile = path.join(DATA_PATH, 'portal-messages.json');
+    let messages = [];
+    if (fs.existsSync(messagesFile)) {
+      try { messages = JSON.parse(fs.readFileSync(messagesFile, 'utf8')); } catch {}
+    }
+    res.json(messages.filter(m => m.projectId === project.id));
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ============================================
+// CONTACTS SEARCH
+// ============================================
+
+app.get('/api/contacts/search', requireAuth, async (req, res) => {
+  try {
+    const query = (req.query.q || '').toLowerCase();
+    const projectId = req.query.projectId;
+    const results = [];
+    const seen = new Set();
+    
+    const addContact = (name, email, source) => {
+      if (!email || seen.has(email.toLowerCase())) return;
+      seen.add(email.toLowerCase());
+      results.push({ name: name || email, email, source });
+    };
+    
+    // 1. Clientes con acceso al proyecto
+    if (projectId) {
+      const tokens = loadClientTokens();
+      Object.values(tokens)
+        .filter(t => t.projectId === projectId)
+        .forEach(t => addContact(t.name, t.email, 'client'));
+    }
+    
+    const token = req.session.user.accessToken;
+    const { Client } = require('@microsoft/microsoft-graph-client');
+    const client = Client.init({ authProvider: (done) => done(null, token) });
+    
+    // 2. People (contactos frecuentes)
+    try {
+      const p = await client.api('/me/people').top(50).get();
+      p.value.forEach(x => {
+        const email = x.scoredEmailAddresses?.[0]?.address;
+        if (email) addContact(x.displayName, email, 'people');
+      });
+    } catch (e) { console.error('People error:', e.message); }
+    
+    // 3. Directorio
+    try {
+      const d = await client.api('/users').top(50).get();
+      d.value.forEach(x => {
+        if (x.mail) addContact(x.displayName, x.mail, 'directory');
+      });
+    } catch (e) { console.error('Directory error:', e.message); }
+    
+    // 4. Emails (enviados y recibidos)
+    try {
+      const msgs = await client.api('/me/messages').select('from,toRecipients,ccRecipients').top(100).get();
+      msgs.value.forEach(m => {
+        if (m.from?.emailAddress?.address) {
+          addContact(m.from.emailAddress.name, m.from.emailAddress.address, 'email');
+        }
+        [...(m.toRecipients || []), ...(m.ccRecipients || [])].forEach(r => {
+          if (r.emailAddress?.address) {
+            addContact(r.emailAddress.name, r.emailAddress.address, 'email');
+          }
+        });
+      });
+    } catch (e) { console.error('Email error:', e.message); }
+    
+    // Filtrar localmente
+    const filtered = query.length >= 2 
+      ? results.filter(c => c.name.toLowerCase().includes(query) || c.email.toLowerCase().includes(query))
+      : results;
+    
+    res.json(filtered.slice(0, 20));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// TEST - ver todos los contactos
+app.get('/api/contacts/debug', requireAuth, async (req, res) => {
+  try {
+    const results = { people: [], contacts: [], directory: [], emails: [] };
+    const token = req.session.user.accessToken;
+    const { Client } = require('@microsoft/microsoft-graph-client');
+    const client = Client.init({ authProvider: (done) => done(null, token) });
+    
+    // People (sin filtro)
+    try {
+      const p = await client.api('/me/people').top(5).get();
+      results.people = p.value.map(x => ({ name: x.displayName, email: x.scoredEmailAddresses?.[0]?.address }));
+    } catch (e) { results.peopleError = e.message; }
+    
+    // Contacts (sin filtro)
+    try {
+      const c = await client.api('/me/contacts').top(5).get();
+      results.contacts = c.value.map(x => ({ name: x.displayName, email: x.emailAddresses?.[0]?.address }));
+    } catch (e) { results.contactsError = e.message; }
+    
+    // Directory (sin filtro)
+    try {
+      const d = await client.api('/users').top(5).get();
+      results.directory = d.value.map(x => ({ name: x.displayName, email: x.mail }));
+    } catch (e) { results.directoryError = e.message; }
+    
+    // Emails recientes
+    try {
+      const msgs = await client.api('/me/messages').select('from,toRecipients').top(10).get();
+      msgs.value.forEach(m => {
+        if (m.from?.emailAddress) results.emails.push({ type: 'from', name: m.from.emailAddress.name, email: m.from.emailAddress.address });
+        (m.toRecipients || []).forEach(r => {
+          if (r.emailAddress) results.emails.push({ type: 'to', name: r.emailAddress.name, email: r.emailAddress.address });
+        });
+      });
+    } catch (e) { results.emailsError = e.message; }
+    
+    res.json(results);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ============================================
+// HEALTH & ROOT
+// ============================================
+
+
+// Sincronizar fase con Microsoft Calendar (sin notificaciones)
+async function syncPhaseToCalendar(accessToken, phase, project) {
+  if (!phase.startDate || !phase.endDate) return null;
+  
+  try {
+    const { Client } = require('@microsoft/microsoft-graph-client');
+    const client = Client.init({ authProvider: (done) => done(null, accessToken) });
+    
+    const event = {
+      subject: '[Fase] ' + phase.name + ' - ' + project.name,
+      body: { contentType: 'Text', content: phase.description || '' },
+      start: { dateTime: phase.startDate + 'T00:00:00', timeZone: 'Europe/Madrid' },
+      end: { dateTime: phase.endDate + 'T23:59:59', timeZone: 'Europe/Madrid' },
+      isAllDay: true,
+      showAs: 'free',
+      isReminderOn: false,
+      categories: ['Fase de proyecto'],
+      sensitivity: 'normal'
+    };
+    
+    if (phase.calendarEventId) {
+      await client.api('/me/events/' + phase.calendarEventId).patch(event);
+      console.log('Phase calendar event updated:', phase.calendarEventId);
+      return phase.calendarEventId;
+    } else {
+      const result = await client.api('/me/events').post(event);
+      console.log('Phase calendar event created:', result.id);
+      return result.id;
+    }
+  } catch (e) {
+    console.error('Error syncing phase to calendar:', e.message);
+    return null;
+  }
+}
+
+
+// Sincronizar tarea con Microsoft Planner
+async function syncTaskToPlanner(accessToken, task, project) {
+  if (!project.planner?.planId) return null;
+  
+  try {
+    const { Client } = require('@microsoft/microsoft-graph-client');
+    const client = Client.init({ authProvider: (done) => done(null, accessToken) });
+    
+    const plannerTask = {
+      planId: project.planner.planId,
+      title: task.title,
+      dueDateTime: task.dueDate ? task.dueDate + 'T23:59:59Z' : null,
+      percentComplete: task.status === 'completed' ? 100 : task.status === 'in_progress' ? 50 : 0,
+    };
+    
+    // Asignar a persona si está especificada
+    if (task.assignedTo?.id) {
+      plannerTask.assignments = {
+        [task.assignedTo.id]: {
+          '@odata.type': '#microsoft.graph.plannerAssignment',
+          orderHint: ' !'
+        }
+      };
+    }
+    
+    if (task.plannerTaskId) {
+      // Actualizar tarea existente - necesita etag
+      const existing = await client.api('/planner/tasks/' + task.plannerTaskId).get();
+      await client.api('/planner/tasks/' + task.plannerTaskId)
+        .header('If-Match', existing['@odata.etag'])
+        .patch(plannerTask);
+      console.log('Planner task updated:', task.plannerTaskId);
+      return task.plannerTaskId;
+    } else {
+      // Crear nueva tarea
+      const result = await client.api('/planner/tasks').post(plannerTask);
+      console.log('Planner task created:', result.id);
+      return result.id;
+    }
+  } catch (e) {
+    console.error('Error syncing task to Planner:', e.message);
+    return null;
+  }
+}
+
+async function deleteTaskFromPlanner(accessToken, plannerTaskId) {
+  if (!plannerTaskId) return;
+  
+  try {
+    const { Client } = require('@microsoft/microsoft-graph-client');
+    const client = Client.init({ authProvider: (done) => done(null, accessToken) });
+    const existing = await client.api('/planner/tasks/' + plannerTaskId).get();
+    await client.api('/planner/tasks/' + plannerTaskId)
+      .header('If-Match', existing['@odata.etag'])
+      .delete();
+    console.log('Planner task deleted:', plannerTaskId);
+  } catch (e) {
+    console.error('Error deleting task from Planner:', e.message);
+  }
+}
+
+async function deletePhaseFromCalendar(accessToken, calendarEventId) {
+  if (!calendarEventId) return;
+  
+  try {
+    const { Client } = require('@microsoft/microsoft-graph-client');
+    const client = Client.init({ authProvider: (done) => done(null, accessToken) });
+    await client.api('/me/events/' + calendarEventId).delete();
+    console.log('Phase calendar event deleted:', calendarEventId);
+  } catch (e) {
+    console.error('Error deleting phase from calendar:', e.message);
+  }
+}
+
+app.get('/health', (req, res) => res.json({ status: 'ok' }));
+app.get('/', (req, res) => res.redirect('/admin/'));
+
+app.listen(PORT, () => {
+  console.log('🟣 Plain Vanilla Admin Portal');
+  console.log(`📡 Puerto: ${PORT}`);
+});

@@ -270,6 +270,65 @@ async function createGroupEvent(accessToken, groupId, event) {
   return await client.api(`/groups/${groupId}/events`).post(event);
 }
 
+/**
+ * Crea una reunión online de Teams
+ */
+async function createOnlineMeeting(accessToken, subject, startDateTime, endDateTime, attendees = []) {
+  const client = getClient(accessToken);
+  
+  const meeting = {
+    subject,
+    start: { dateTime: startDateTime, timeZone: 'Europe/Madrid' },
+    end: { dateTime: endDateTime, timeZone: 'Europe/Madrid' },
+    isOnlineMeeting: true,
+    onlineMeetingProvider: 'teamsForBusiness',
+    attendees: attendees.map(email => ({
+      emailAddress: { address: email },
+      type: 'required'
+    }))
+  };
+  
+  const event = await client.api('/me/events').post(meeting);
+  return {
+    id: event.id,
+    joinUrl: event.onlineMeeting?.joinUrl || '',
+    subject: event.subject,
+    start: event.start,
+    end: event.end
+  };
+}
+
+/**
+ * Busca usuarios en el directorio
+ */
+async function searchUsers(accessToken, query) {
+  const client = getClient(accessToken);
+  const result = await client
+    .api('/users')
+    .filter(`startswith(displayName,'${query}') or startswith(mail,'${query}')`)
+    .select('id,displayName,mail,userPrincipalName')
+    .top(10)
+    .get();
+  return result.value;
+}
+
+/**
+ * Obtiene los contactos del usuario
+ */
+async function getMyContacts(accessToken, query = '') {
+  const client = getClient(accessToken);
+  let api = client.api('/me/contacts').select('id,displayName,emailAddresses').top(20);
+  if (query) {
+    api = api.filter(`startswith(displayName,'${query}')`);
+  }
+  const result = await api.get();
+  return result.value.map(c => ({
+    id: c.id,
+    name: c.displayName,
+    email: c.emailAddresses?.[0]?.address || ''
+  })).filter(c => c.email);
+}
+
 // ============================================
 // TEAMS
 // ============================================
@@ -352,7 +411,7 @@ async function listMyGroups(accessToken) {
   const client = getClient(accessToken);
   const result = await client
     .api('/me/memberOf')
-    .filter("groupTypes/any(c:c eq 'Unified')")
+    .select('id,displayName,description,groupTypes')
     .get();
   return result.value;
 }
@@ -401,6 +460,9 @@ module.exports = {
   // Calendar
   listEvents,
   createEvent,
+  createOnlineMeeting,
+  searchUsers,
+  getMyContacts,
   createGroupEvent,
   // Teams
   listMyTeams,
