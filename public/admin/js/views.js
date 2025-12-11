@@ -231,17 +231,26 @@ const TimelineView = ({ phases, sessions, tasks, onEditPhase, onEditSession, onD
                   })}
                 
                 {/* Tasks */}
-                {phaseTasks.map(t => (
+                {phaseTasks.map(t => {
+                  const assignee = t.assignedTo?.[0];
+                  const initials = assignee?.name ? assignee.name.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase() : null;
+                  return (
                   <div 
-                    key={t.id} 
-                    className="bg-white/80 rounded-lg p-3 flex items-center gap-3 border-l-4 border-blue-400"
+                    key={t.id}
+                    data-item-id={t.id}
+                    data-item-type="task"
+                    onClick={() => onEditTask && onEditTask(t)}
+                    className="bg-white/80 rounded-lg p-3 flex items-center gap-3 border-l-4 border-blue-400 cursor-pointer hover:bg-white transition-colors"
                   >
+                    <div className="item-drag-handle cursor-grab hover:cursor-grabbing text-gray-300 hover:text-gray-500 -ml-1" onClick={e => e.stopPropagation()}>
+                      <Icon name="drag_indicator" className="text-base" />
+                    </div>
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
                       t.status === 'completed' ? 'bg-blue-100' : 
                       t.status === 'in_progress' ? 'bg-orange-100' : 'bg-slate-100'
                     }`}>
                       <Icon 
-                        name={`${t.status === 'completed' ? 'check_box' : 'check_box_outline_blank'}`}
+                        name={t.status === 'completed' ? 'check_box' : 'check_box_outline_blank'}
                         className={`text-sm ${
                           t.status === 'completed' ? 'text-blue-600' : 
                           t.status === 'in_progress' ? 'text-orange-600' : 'text-slate-400'
@@ -260,11 +269,18 @@ const TimelineView = ({ phases, sessions, tasks, onEditPhase, onEditSession, onD
                       )}
                     </div>
                     
+                    {assignee && (
+                      <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-medium" title={assignee.name || assignee.email}>
+                        {initials || '?'}
+                      </div>
+                    )}
+                    
                     {t.priority === 'high' && (
                       <Badge color="red">Urgente</Badge>
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
