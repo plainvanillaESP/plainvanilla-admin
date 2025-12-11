@@ -62,7 +62,7 @@ const TimelineView = ({ phases, sessions, tasks, onEditPhase, onEditSession, onD
               
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <span className={`font-semibold ${textColor}`}>{phase.name}</span>
+                  <span className={`font-semibold ${textColor}`}>{i + 1}. {phase.name}</span>
                   <Badge color={
                     phase.status === 'completed' ? 'green' : 
                     phase.status === 'active' ? 'amber' : 'gray'
