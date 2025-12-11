@@ -577,8 +577,23 @@ async function getPhoto(accessToken) {
   }
 }
 
+
+// Obtener foto de un usuario por ID
+async function getUserPhoto(accessToken, userId) {
+  try {
+    const client = getClient(accessToken);
+    const photo = await client.api(`/users/${userId}/photo/$value`).responseType('arraybuffer').get();
+    const buffer = Buffer.from(photo);
+    const base64 = buffer.toString('base64');
+    return `data:image/jpeg;base64,${base64}`;
+  } catch (e) {
+    return null;
+  }
+}
+
 module.exports = {
   getPhoto,
+  getUserPhoto,
   updateOnlineMeeting,
   addAttendeesToMeeting,
   searchMailContacts,
