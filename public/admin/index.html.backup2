@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Plain Vanilla</title>
+    
+    <!-- React 18 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel para JSX en navegador -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+    
+    <!-- html2canvas para exports -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'pv-pink': '#e6007e',
+                        'pv-purple': '#8b37ed'
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Estilos globales -->
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body, #root { height: 100%; font-family: 'Inter', sans-serif; }
+        
+        /* Material Icons */
+        .material-icons-outlined { font-size: 20px; vertical-align: middle; }
+        
+        /* Gradient backgrounds */
+        .gradient-bg, .bg-pv-gradient { background: linear-gradient(135deg, #e6007e 0%, #8b37ed 100%); }
+        .bg-pv-gradient-soft { background: linear-gradient(135deg, rgba(230,0,126,0.1) 0%, rgba(139,55,237,0.1) 100%); }
+        .gradient-text, .text-pv-gradient { 
+            background: linear-gradient(135deg, #e6007e 0%, #8b37ed 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a1a1a1; }
+        
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fadeIn { animation: fadeIn 0.2s ease-out; }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(100%); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .animate-slideIn { animation: slideIn 0.3s ease-out; }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        
+        /* Toast animations */
+        .toast-enter { animation: slideIn 0.3s ease-out; }
+        .toast-exit { animation: slideIn 0.3s ease-out reverse; }
+        
+        /* Card hover effects */
+        .card-hover { transition: all 0.2s ease; }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
+        
+        /* Button transitions */
+        .btn-transition { transition: all 0.15s ease; }
+        
+        /* Gantt styles */
+        .gantt-bar {
+            position: absolute;
+            height: 24px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            font-size: 11px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        /* Calendar styles */
+        .calendar-day {
+            min-height: 100px;
+            border: 1px solid #e5e7eb;
+            padding: 4px;
+            background: white;
+        }
+        .calendar-day.other-month { background: #f9fafb; }
+        .calendar-day.today { background: #fef3c7; }
+        
+        /* Kanban styles */
+        .kanban-column {
+            min-height: 400px;
+            background: #f9fafb;
+            border-radius: 8px;
+            padding: 12px;
+        }
+        .kanban-card {
+            background: white;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .kanban-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        
+        /* Print styles */
+        @media print {
+            .no-print { display: none !important; }
+            .print-break { page-break-before: always; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div id="root">
+        <!-- Loading state mientras cargan los scripts -->
+        <div style="display: flex; align-items: center; justify-content: center; height: 100vh; flex-direction: column; gap: 16px;">
+            <svg viewBox="0 0 211.98 211.98" style="width: 60px; height: 60px; animation: pulse 2s infinite;">
+                <defs>
+                    <linearGradient id="loadGrad" x1="0" y1="105.99" x2="211.98" y2="105.99">
+                        <stop offset="0" stop-color="#e6007e"/>
+                        <stop offset="1" stop-color="#8b37ed"/>
+                    </linearGradient>
+                </defs>
+                <path fill="url(#loadGrad)" d="M56.43,105.99c21.77-10.17,39.38-27.79,49.56-49.56,10.18,21.77,27.79,39.38,49.56,49.56-21.77,10.18-39.39,27.79-49.56,49.56-10.18-21.77-27.79-39.39-49.56-49.56ZM211.98,92.84C163.57,86.86,125.12,48.41,119.14,0c48.4,5.97,86.86,44.43,92.83,92.83ZM92.84,0C86.87,48.41,48.41,86.87,0,92.84,5.97,44.43,44.43,5.97,92.84,0ZM0,119.15c48.4,5.98,86.86,44.43,92.83,92.83C44.43,206,5.98,167.55,0,119.15ZM119.14,211.98c5.97-48.41,44.43-86.87,92.84-92.84-5.97,48.41-44.43,86.87-92.84,92.84Z"/>
+            </svg>
+            <div style="color: #6b7280; font-family: Inter, sans-serif;">Cargando...</div>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- MÓDULOS JS - Orden de carga importante -->
+    <!-- ============================================ -->
+    
+    <!-- 1. Componentes base (Icon, Card, Button, Modal, Toast, etc) -->
+    <script type="text/babel" src="js/components.js"></script>
+    
+    <!-- 2. API helper y utilidades (api, formatDate, formatCurrency, etc) -->
+    <script type="text/babel" src="js/api.js"></script>
+    
+    <!-- 3. Vista Dashboard -->
+    <script type="text/babel" src="js/dashboard.js"></script>
+    
+    <!-- 4. Vista Lista de Proyectos -->
+    <script type="text/babel" src="js/projects.js"></script>
+    
+    <!-- 5. Vista Detalle de Proyecto -->
+    <script type="text/babel" src="js/project-detail.js"></script>
+    
+    <!-- 6. Vistas del Roadmap (Timeline, Kanban, Calendar, Gantt) -->
+    <script type="text/babel" src="js/views.js"></script>
+    
+    <!-- 7. Modales (Phase, Session, Task, ClientAccess, M365) -->
+    <script type="text/babel" src="js/modals.js"></script>
+    
+    <!-- 8. App principal (Sidebar, Router, Main) - ÚLTIMO -->
+    <script type="text/babel" src="js/app.js"></script>
+
+</body>
+</html>
