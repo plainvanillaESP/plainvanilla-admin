@@ -1017,12 +1017,24 @@ async function syncTaskToPlanner(accessToken, task, project) {
       return task.plannerTaskId;
     } else {
       // Crear nueva tarea
+      const options = {};
+      if (task.dueDate) {
+        options.dueDateTime = task.dueDate + 'T23:59:59Z';
+      }
+      if (task.assignedToId) {
+        options.assignments = {
+          [task.assignedToId]: {
+            '@odata.type': '#microsoft.graph.plannerAssignment',
+            orderHint: ' !'
+          }
+        };
+      }
       const result = await graph.createTask(
         accessToken,
         project.planner.planId,
         bucketId,
         task.title,
-        task.dueDate
+        options
       );
       return result.id;
     }
