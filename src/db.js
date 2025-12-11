@@ -214,7 +214,10 @@ async function updateTask(taskId, updates) {
   if (updates.dueDate !== undefined) { fields.push(`due_date = $${i}`); values.push(updates.dueDate); i++; }
   if (updates.phaseId !== undefined) { fields.push(`phase_id = $${i}`); values.push(updates.phaseId); i++; }
   if (updates.visibility !== undefined) { fields.push(`visibility = $${i}`); values.push(updates.visibility); i++; }
-  if (updates.assignedToType !== undefined) { fields.push(`assigned_to_type = $${i}`); values.push(updates.assignedToType); i++; }
+  if (updates.assignedToType !== undefined) { fields.push(`assigned_to_type = ${i}`); values.push(updates.assignedToType); i++; }
+  if (updates.assignedToEmail !== undefined) { fields.push(`assigned_to_email = ${i}`); values.push(updates.assignedToEmail); i++; }
+  if (updates.assignedToName !== undefined) { fields.push(`assigned_to_name = ${i}`); values.push(updates.assignedToName); i++; }
+  if (updates.assignedToPhoto !== undefined) { fields.push(`assigned_to_photo = ${i}`); values.push(updates.assignedToPhoto); i++; }
   if (updates.priority !== undefined) { fields.push(`priority = $${i}`); values.push(updates.priority); i++; }
   if (updates.status !== undefined) { fields.push(`status = $${i}`); values.push(updates.status); i++; }
   if (updates.plannerTaskId !== undefined) { fields.push(`planner_task_id = $${i}`); values.push(updates.plannerTaskId); i++; }
@@ -337,7 +340,7 @@ function formatTask(row) {
     id: row.id, projectId: row.project_id, phaseId: row.phase_id, title: row.title, description: row.description,
     dueDate: row.due_date ? row.due_date.toISOString().split('T')[0] : null,
     priority: row.priority, status: row.status, visibility: row.visibility, assignedToType: row.assigned_to_type,
-    assignedTo: row.assigned_to_email ? { email: row.assigned_to_email, name: row.assigned_to_name } : null,
+    assignedTo: row.assigned_to_email ? { email: row.assigned_to_email, name: row.assigned_to_name, photo: row.assigned_to_photo } : null,
     plannerTaskId: row.planner_task_id, createdAt: row.created_at, createdBy: row.created_by
   };
 }
