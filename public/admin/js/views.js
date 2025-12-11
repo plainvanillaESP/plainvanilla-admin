@@ -268,31 +268,26 @@ const TimelineView = ({ phases, sessions, tasks, onEditPhase, onEditSession, onD
                       )}
                     </div>
                     
-                    {t.assignedTo && t.assignedTo.length > 0 && (
+                    {t.assignedTo && (
                       <div className="flex -space-x-2">
-                        {t.assignedTo.slice(0, 3).map((person, idx) => {
-                          const personInitials = person.name ? person.name.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase() : '?';
-                          return (
-                            <div 
-                              key={idx}
-                              className="w-7 h-7 rounded-full border-2 border-white bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-medium overflow-hidden"
-                              title={person.name || person.email}
-                              style={{ zIndex: 10 - idx }}
-                            >
-                              {person.photo ? (
-                                <img src={person.photo} alt={person.name} className="w-full h-full object-cover" />
-                              ) : personInitials}
-                            </div>
-                          );
-                        })}
-                        {t.assignedTo.length > 3 && (
-                          <div 
-                            className="w-7 h-7 rounded-full border-2 border-white bg-gray-400 flex items-center justify-center text-white text-xs font-medium"
-                            style={{ zIndex: 6 }}
-                          >
-                            +{t.assignedTo.length - 3}
-                          </div>
-                        )}
+                        {(() => {
+                          const people = Array.isArray(t.assignedTo) ? t.assignedTo : [t.assignedTo];
+                          return people.filter(p => p).slice(0, 3).map((person, idx) => {
+                            const personInitials = person.name ? person.name.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase() : '?';
+                            return (
+                              <div 
+                                key={idx}
+                                className="w-7 h-7 rounded-full border-2 border-white bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-medium overflow-hidden"
+                                title={person.name || person.email}
+                                style={{ zIndex: 10 - idx }}
+                              >
+                                {person.photo ? (
+                                  <img src={person.photo} alt={person.name} className="w-full h-full object-cover rounded-full" />
+                                ) : personInitials}
+                              </div>
+                            );
+                          });
+                        })()}
                       </div>
                     )}
                     

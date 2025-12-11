@@ -94,9 +94,9 @@ const Sidebar = ({ user, currentView, onNavigate, onLogout }) => {
       {/* User */}
       <div className="p-3 border-t border-apple-gray-100">
         <div className="flex items-center gap-3 p-2">
-          <div className="w-9 h-9 rounded-full pv-gradient flex items-center justify-center text-white text-sm font-medium">
+          <div className="w-9 h-9 rounded-full pv-gradient flex items-center justify-center text-white text-sm font-medium overflow-hidden">
             {user?.photo ? (
-              <img src={user.photo} alt={user.name} className="w-full h-full object-cover" />
+              <img src={user.photo} alt={user.name} className="w-full h-full object-cover rounded-full" />
             ) : (
               user?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'
             )}
