@@ -31,6 +31,17 @@ const ProjectDetailView = ({ projectId, onBack, onRefresh }) => {
   
   const toast = useToast();
 
+  const handleDeleteSession = async (session) => {
+    if (!confirm(`¿Eliminar la sesión "${session.title}"?`)) return;
+    try {
+      await api.delete(`/api/projects/${projectId}/sessions/${session.id}`);
+      toast.success("Sesión eliminada");
+      loadProject();
+    } catch (e) {
+      toast.error("Error al eliminar sesión");
+    }
+  };
+
   const loadProject = async () => {
     try {
       const data = await api.get(`/api/projects/${projectId}`);
@@ -178,6 +189,9 @@ const ProjectDetailView = ({ projectId, onBack, onRefresh }) => {
                   tasks={tasks}
                   onEditPhase={p => { setEditingPhase(p); setShowPhaseModal(true); }}
                   onEditSession={s => { setEditingSession(s); setShowSessionModal(true); }}
+                  onDeleteSession={handleDeleteSession}
+                  onDeleteSession={handleDeleteSession}
+                  onDeleteSession={handleDeleteSession}
                 />
               )}
             </div>
@@ -318,6 +332,17 @@ const BudgetCard = ({ project, onSave }) => {
   const [newAddOn, setNewAddOn] = useState({ name: '', price: '' });
   const [saving, setSaving] = useState(false);
   const toast = useToast();
+
+  const handleDeleteSession = async (session) => {
+    if (!confirm(`¿Eliminar la sesión "${session.title}"?`)) return;
+    try {
+      await api.delete(`/api/projects/${projectId}/sessions/${session.id}`);
+      toast.success("Sesión eliminada");
+      loadProject();
+    } catch (e) {
+      toast.error("Error al eliminar sesión");
+    }
+  };
 
   const revenue = calculateProjectRevenue({ pricing, addOns });
 

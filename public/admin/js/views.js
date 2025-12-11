@@ -16,7 +16,7 @@ const {
 // TIMELINE VIEW
 // ============================================
 
-const TimelineView = ({ phases, sessions, tasks, onEditPhase, onEditSession }) => {
+const TimelineView = ({ phases, sessions, tasks, onEditPhase, onEditSession, onDeleteSession }) => {
   const [expandedPhases, setExpandedPhases] = useState(new Set(phases.map(p => p.id)));
   
   const togglePhase = (id) => {
@@ -132,18 +132,38 @@ const TimelineView = ({ phases, sessions, tasks, onEditPhase, onEditSession }) =
                           </div>
                         </div>
                         
-                        {s.type === 'online' && teamsUrl && (
-                          <a 
-                            href={teamsUrl} 
-                            target="_blank" 
-                            rel="noopener" 
-                            onClick={e => e.stopPropagation()} 
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg text-sm font-medium transition-colors"
+                        {/* Action Buttons */}
+                        <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                          {s.type === 'online' && teamsUrl && (
+                            <>
+                              <a 
+                                href={teamsUrl} 
+                                target="_blank" 
+                                rel="noopener"
+                                className="px-3 py-1.5 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg text-sm font-medium transition-colors"
+                              >
+                                Unirse
+                              </a>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(teamsUrl);
+                                  window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'success', message: 'Link copiado' }}));
+                                }}
+                                className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                                title="Copiar link"
+                              >
+                                <Icon name="content_copy" className="text-sm" />
+                              </button>
+                            </>
+                          )}
+                          <button
+                            onClick={() => onDeleteSession && onDeleteSession(s)}
+                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Eliminar sesión"
                           >
-                            <window.TeamsIcon className="w-4 h-4" />
-                            Unirse
-                          </a>
-                        )}
+                            <Icon name="delete" className="text-sm" />
+                          </button>
+                        </div>
                       </div>
                     );
                   })}
@@ -247,7 +267,7 @@ const KanbanView = ({ phases, sessions, tasks }) => {
                         rel="noopener" 
                         className="mt-2 flex items-center gap-1 text-sm text-purple-600 hover:text-purple-800"
                       >
-                        <window.TeamsIcon className="w-4 h-4" />
+                        
                         Unirse a Teams
                       </a>
                     )}
