@@ -125,10 +125,22 @@ app.get('/auth/callback', async (req, res) => {
       return res.send(`<h1>Acceso denegado</h1><p>Solo usuarios @${allowedDomain}</p>`);
     }
 
+    // Intentar obtener foto de perfil
+    let photoUrl = null;
+    try {
+      const photoResponse = await graph.getPhoto(tokenResponse.accessToken);
+      if (photoResponse) {
+        photoUrl = photoResponse;
+      }
+    } catch (e) {
+      console.log('No se pudo obtener foto de perfil:', e.message);
+    }
+
     req.session.user = {
       id: userInfo.id,
       name: userInfo.displayName,
       email: userEmail,
+      photo: photoUrl,
       accessToken: tokenResponse.accessToken,
       expiresAt: Date.now() + 3600000
     };
@@ -154,7 +166,8 @@ app.get('/api/me', (req, res) => {
   res.json({
     id: req.session.user.id,
     name: req.session.user.name,
-    email: req.session.user.email
+    email: req.session.user.email,
+    photo: req.session.user.photo
   });
 });
 

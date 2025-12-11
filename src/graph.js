@@ -558,7 +558,26 @@ async function searchMailContacts(accessToken, query) {
   return results;
 }
 
+
+// Obtener foto de perfil como base64
+async function getPhoto(accessToken) {
+  try {
+    const client = getClient(accessToken);
+    const photo = await client.api('/me/photo/$value').get();
+    
+    // Convertir a base64
+    const buffer = Buffer.from(photo);
+    const base64 = buffer.toString('base64');
+    return `data:image/jpeg;base64,${base64}`;
+  } catch (e) {
+    // Si no tiene foto, devolver null
+    if (e.statusCode === 404) return null;
+    throw e;
+  }
+}
+
 module.exports = {
+  getPhoto,
   updateOnlineMeeting,
   addAttendeesToMeeting,
   searchMailContacts,
