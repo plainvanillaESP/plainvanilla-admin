@@ -549,7 +549,7 @@ const TaskModal = ({ isOpen, onClose, task, projectId, phases, onSave }) => {
   const [form, setForm] = useState({
     title: '', description: '', dueDate: '', phaseId: '',
     visibility: 'public', assignedToType: '', assignedToId: '', 
-    assignedToEmail: '', assignedToName: '', assignedToPhoto: '',
+    assignees: [],
     priority: 'medium', status: 'pending'
   });
   const [loading, setLoading] = useState(false);
@@ -569,9 +569,8 @@ const TaskModal = ({ isOpen, onClose, task, projectId, phases, onSave }) => {
         visibility: task.visibility || 'public',
         assignedToType: task.assignedToType || '',
         assignedToId: task.assignedToId || '',
-        assignedToEmail: task.assignedToEmail || task.assignedTo?.email || '',
-        assignedToName: task.assignedToName || task.assignedTo?.name || '',
-        assignedToPhoto: task.assignedToPhoto || task.assignedTo?.photo || '',
+        assignees: Array.isArray(task.assignedTo) ? task.assignedTo : (task.assignedTo ? [task.assignedTo] : []),
+
         priority: task.priority || 'medium',
         status: task.status || 'pending'
       });
@@ -579,7 +578,7 @@ const TaskModal = ({ isOpen, onClose, task, projectId, phases, onSave }) => {
       setForm({
         title: '', description: '', dueDate: '', phaseId: phases[0]?.id || '',
         visibility: 'public', assignedToType: '', assignedToId: '',
-        assignedToEmail: '', assignedToName: '', assignedToPhoto: '',
+        assignees: [],
         priority: 'medium', status: 'pending'
       });
     }
@@ -616,25 +615,16 @@ const TaskModal = ({ isOpen, onClose, task, projectId, phases, onSave }) => {
   };
 
   const handleAssign = (person) => {
-    setForm({
-      ...form,
-      assignedToType: person.type || 'client',
-      assignedToId: person.id || person.user_id || '',
-      assignedToEmail: person.email,
-      assignedToName: person.name || person.email,
-      assignedToPhoto: person.photo || ''
-    });
+    const newAssignee = { email: person.email, name: person.name || person.email, photo: person.photo || '' };
+    if (!form.assignees.some(a => a.email === newAssignee.email)) {
+      setForm({ ...form, assignees: [...form.assignees, newAssignee] });
+    }
+    setAssignSearch('');
+    setShowAssignDropdown(false);
   };
 
-  const clearAssignment = () => {
-    setForm({
-      ...form,
-      assignedToType: '',
-      assignedToId: '',
-      assignedToEmail: '',
-      assignedToName: '',
-      assignedToPhoto: ''
-    });
+  const removeAssignee = (email) => {
+    setForm({ ...form, assignees: form.assignees.filter(a => a.email !== email) });
   };
 
   const handleSave = async () => {
@@ -740,23 +730,25 @@ const TaskModal = ({ isOpen, onClose, task, projectId, phases, onSave }) => {
             Asignar a
           </label>
           
-          {form.assignedToEmail ? (
-            <div className="flex items-center gap-2 p-2 bg-apple-gray-50 rounded-lg">
-              <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
-                <Icon name="person" className="text-purple-600 text-sm" />
-              </div>
-              <div className="flex-1">
-                <div className="text-sm font-medium text-apple-gray-600">{form.assignedToName}</div>
-                <div className="text-xs text-apple-gray-400">{form.assignedToEmail}</div>
-              </div>
-              <Badge color={form.assignedToType === 'team' ? 'purple' : 'blue'}>
-                {form.assignedToType === 'team' ? 'Equipo PV' : 'Cliente'}
-              </Badge>
-              <button onClick={clearAssignment} className="p-1 hover:bg-apple-gray-200 rounded">
-                <Icon name="close" className="text-apple-gray-400 text-sm" />
-              </button>
+          {form.assignees && form.assignees.length > 0 && (
+            <div className="space-y-2 mb-2 max-h-32 overflow-y-auto">
+              {form.assignees.map((person, idx) => (
+                <div key={idx} className="flex items-center gap-2 p-2 bg-apple-gray-50 rounded-lg">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-sm font-medium overflow-hidden">
+                    {person.photo ? <img src={person.photo} className="w-full h-full object-cover" /> : (person.name || '?').split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase()}
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-sm font-medium text-apple-gray-600">{person.name}</div>
+                    <div className="text-xs text-apple-gray-400">{person.email}</div>
+                  </div>
+                  <button type="button" onClick={() => removeAssignee(person.email)} className="p-1 hover:bg-apple-gray-200 rounded">
+                    <Icon name="close" className="text-apple-gray-400 text-sm" />
+                  </button>
+                </div>
+              ))}
             </div>
-          ) : (
+          )}
+          {(
             <div className="relative">
               <input
                 type="text"
