@@ -11,6 +11,26 @@ const {
   formatDate, getSessionStatus, getPhaseProgress,
   phaseColors, phaseTextColors 
 } = window;
+// Phase color map
+const phaseColorMap = {
+  purple: { bg: 'bg-purple-200', text: 'text-purple-700' },
+  blue: { bg: 'bg-blue-200', text: 'text-blue-700' },
+  green: { bg: 'bg-green-200', text: 'text-green-700' },
+  amber: { bg: 'bg-amber-200', text: 'text-amber-700' },
+  pink: { bg: 'bg-pink-200', text: 'text-pink-700' },
+  teal: { bg: 'bg-teal-200', text: 'text-teal-700' },
+  indigo: { bg: 'bg-indigo-200', text: 'text-indigo-700' },
+  red: { bg: 'bg-red-200', text: 'text-red-700' }
+};
+
+const getPhaseColorClasses = (phase, fallbackIndex) => {
+  if (phase.color && phaseColorMap[phase.color]) {
+    return phaseColorMap[phase.color];
+  }
+  return { bg: phaseColors[fallbackIndex % phaseColors.length], text: phaseTextColors[fallbackIndex % phaseTextColors.length] };
+};
+
+
 
 // ============================================
 // TIMELINE VIEW
@@ -630,7 +650,7 @@ const GanttView = ({ phases, sessions }) => {
             const duration = Math.ceil((phaseEnd - phaseStart) / (1000 * 60 * 60 * 24)) + 1;
             const width = duration * dayWidth;
             const left = offset * dayWidth;
-            const bgColor = phaseColors[i % phaseColors.length];
+            const colorClasses = getPhaseColorClasses(phase, i); const bgColor = colorClasses.bg;
             const textColor = phaseTextColors[i % phaseTextColors.length];
             
             return (
