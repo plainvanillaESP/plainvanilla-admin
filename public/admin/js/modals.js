@@ -5,7 +5,6 @@
 
 const { useState, useEffect } = React;
 
-// Get components and utilities from window
 const { Icon, Modal, Button, Input, Select, Textarea, Badge } = window;
 const { 
   api, formatDate, formatCurrency, minDateStr, 
@@ -41,7 +40,7 @@ const PhaseModal = ({ isOpen, onClose, phase, projectId, phases, onSave }) => {
 
   const handleDateChange = (field, value) => {
     if (value && !validateDateNotTooOld(value)) {
-      setDateError('No se permiten fechas de mas de 1 año en el pasado');
+      setDateError('No se permiten fechas de mas de 1 ano en el pasado');
       return;
     }
     
@@ -170,11 +169,9 @@ const SessionModal = ({ isOpen, onClose, session, projectId, phases, onSave }) =
   const [showConflictPopup, setShowConflictPopup] = useState(false);
   const [conflict, setConflict] = useState(null);
   
-  // Attendees search
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
-  const [projectMembers, setProjectMembers] = useState([]);
   
   const toast = useToast();
 
@@ -202,23 +199,6 @@ const SessionModal = ({ isOpen, onClose, session, projectId, phases, onSave }) =
     setSearchResults([]);
   }, [session, isOpen, phases]);
 
-  // Load project members
-  useEffect(() => {
-    if (isOpen && projectId) {
-      loadProjectMembers();
-    }
-  }, [isOpen, projectId]);
-
-  const loadProjectMembers = async () => {
-    try {
-      const data = await api.get(`/api/projects/${projectId}/client-access`);
-      setProjectMembers(data || []);
-    } catch (e) {
-      console.log('No project members');
-    }
-  };
-
-  // Search attendees
   const handleSearch = async (query) => {
     setSearchQuery(query);
     if (query.length < 2) {
@@ -231,11 +211,7 @@ const SessionModal = ({ isOpen, onClose, session, projectId, phases, onSave }) =
       const results = await api.get(`/api/contacts/search?projectId=${projectId}&q=${encodeURIComponent(query)}`);
       setSearchResults(results || []);
     } catch (e) {
-      const filtered = projectMembers.filter(m => 
-        m.name?.toLowerCase().includes(query.toLowerCase()) ||
-        m.email?.toLowerCase().includes(query.toLowerCase())
-      );
-      setSearchResults(filtered);
+      setSearchResults([]);
     }
     setSearching(false);
   };
@@ -247,8 +223,8 @@ const SessionModal = ({ isOpen, onClose, session, projectId, phases, onSave }) =
         ...form,
         attendees: [...form.attendees, {
           email: person.email,
-          name: person.name || person.displayName || person.email,
-          type: person.type || 'external'
+          name: person.name || person.email,
+          type: person.source || 'external'
         }]
       });
     }
@@ -425,7 +401,11 @@ const SessionModal = ({ isOpen, onClose, session, projectId, phases, onSave }) =
                 type="text"
                 value={searchQuery}
                 onChange={e => handleSearch(e.target.value)}
-                placeholder="Buscar por nombre o email..." autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck="false" autoComplete="off"
+                placeholder="Buscar por nombre o email..."
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
                 className="w-full px-3 py-2 text-sm bg-apple-gray-50 border border-apple-gray-200 rounded-lg focus:outline-none focus:bg-white focus:border-apple-blue"
               />
               {searching && (
@@ -445,32 +425,16 @@ const SessionModal = ({ isOpen, onClose, session, projectId, phases, onSave }) =
                       <div className="w-8 h-8 rounded-full bg-apple-gray-100 flex items-center justify-center">
                         <Icon name="person" className="text-apple-gray-400 text-sm" />
                       </div>
-                      <div>
-                        <div className="text-sm text-apple-gray-600">{person.name || person.displayName}</div>
+                      <div className="flex-1">
+                        <div className="text-sm text-apple-gray-600">{person.name}</div>
                         <div className="text-xs text-apple-gray-400">{person.email}</div>
                       </div>
+                      <span className="text-xs text-apple-gray-300">{person.source}</span>
                     </button>
                   ))}
                 </div>
               )}
             </div>
-
-            {projectMembers.length > 0 && searchQuery.length === 0 && (
-              <div className="mt-2">
-                <span className="text-xs text-apple-gray-400">Miembros del proyecto:</span>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {projectMembers.slice(0, 5).map((m, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => addAttendee({ email: m.email, name: m.name, type: 'client' })}
-                      className="px-2 py-1 text-xs bg-apple-gray-100 hover:bg-apple-gray-200 rounded-md"
-                    >
-                      {m.name || m.email}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
             
             {form.attendees.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-3">
@@ -515,7 +479,7 @@ const SessionModal = ({ isOpen, onClose, session, projectId, phases, onSave }) =
         title="Fecha fuera de rango" 
         size="small"
       >
-        <div className="space-y-4">
+        <div className="space-y-4" style={{ maxWidth: '400px' }}>
           <p className="text-apple-gray-500">
             La fecha <strong>{formatDate(conflict?.sessionDate)}</strong> esta fuera del rango 
             de la fase "<strong>{conflict?.phase?.name}</strong>" 
@@ -551,7 +515,7 @@ const SessionModal = ({ isOpen, onClose, session, projectId, phases, onSave }) =
 };
 
 // ============================================
-// TASK MODAL - Con asignacion a personas
+// TASK MODAL - Solo gente del proyecto
 // ============================================
 
 const TaskModal = ({ isOpen, onClose, task, projectId, phases, onSave }) => {
@@ -563,7 +527,6 @@ const TaskModal = ({ isOpen, onClose, task, projectId, phases, onSave }) => {
   });
   const [loading, setLoading] = useState(false);
   const [projectMembers, setProjectMembers] = useState([]);
-  const [teamMembers, setTeamMembers] = useState([]);
   const toast = useToast();
 
   useEffect(() => {
@@ -604,19 +567,15 @@ const TaskModal = ({ isOpen, onClose, task, projectId, phases, onSave }) => {
     } catch (e) {
       console.log('No project members');
     }
-    
-    setTeamMembers([
-      { id: 'pv1', name: 'Plain Vanilla', email: 'team@plainvanilla.ai', type: 'team' }
-    ]);
   };
 
   const handleAssign = (person) => {
     setForm({
       ...form,
-      assignedToType: person.type || (person.email?.includes('plainvanilla') ? 'team' : 'client'),
+      assignedToType: person.type || 'client',
       assignedToId: person.id || person.user_id || '',
       assignedToEmail: person.email,
-      assignedToName: person.name || person.displayName || person.email
+      assignedToName: person.name || person.email
     });
   };
 
@@ -667,6 +626,11 @@ const TaskModal = ({ isOpen, onClose, task, projectId, phases, onSave }) => {
     }
     setLoading(false);
   };
+
+  // Equipo Plain Vanilla hardcoded
+  const teamMembers = [
+    { id: 'pv1', name: 'Plain Vanilla', email: 'team@plainvanilla.ai', type: 'team' }
+  ];
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={task ? 'Editar tarea' : 'Nueva tarea'}>
@@ -726,7 +690,7 @@ const TaskModal = ({ isOpen, onClose, task, projectId, phases, onSave }) => {
           />
         </div>
         
-        {/* Assignment Section */}
+        {/* Assignment Section - Solo gente del proyecto */}
         <div>
           <label className="block text-sm font-medium text-apple-gray-500 mb-1.5">
             Asignar a
@@ -784,8 +748,8 @@ const TaskModal = ({ isOpen, onClose, task, projectId, phases, onSave }) => {
                 </div>
               )}
               
-              {projectMembers.length === 0 && teamMembers.length === 0 && (
-                <p className="text-xs text-apple-gray-400">No hay personas disponibles</p>
+              {projectMembers.length === 0 && (
+                <p className="text-xs text-apple-gray-400">No hay clientes en el proyecto. Añade acceso de cliente primero.</p>
               )}
             </div>
           )}
@@ -823,7 +787,7 @@ const TaskModal = ({ isOpen, onClose, task, projectId, phases, onSave }) => {
 };
 
 // ============================================
-// CLIENT ACCESS MODAL
+// CLIENT ACCESS MODAL - Con busqueda completa
 // ============================================
 
 const ClientAccessModal = ({ isOpen, onClose, project, onSave }) => {
@@ -831,13 +795,20 @@ const ClientAccessModal = ({ isOpen, onClose, project, onSave }) => {
   const [form, setForm] = useState({ email: '', name: '' });
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
+  
+  // Search
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  
   const toast = useToast();
 
   const loadAccesses = async () => {
     setLoading(true);
     try {
       const data = await api.get(`/api/projects/${project.id}/client-access`);
-      setAccesses(data);
+      setAccesses(data || []);
     } catch (e) {
       toast.error('Error al cargar accesos');
     }
@@ -845,8 +816,48 @@ const ClientAccessModal = ({ isOpen, onClose, project, onSave }) => {
   };
 
   useEffect(() => {
-    if (isOpen) loadAccesses();
+    if (isOpen) {
+      loadAccesses();
+      setForm({ email: '', name: '' });
+      setSearchQuery('');
+      setSearchResults([]);
+    }
   }, [isOpen]);
+
+  const handleSearch = async (query, field) => {
+    if (field === 'email') {
+      setForm({ ...form, email: query });
+    } else {
+      setForm({ ...form, name: query });
+    }
+    
+    setSearchQuery(query);
+    
+    if (query.length < 2) {
+      setSearchResults([]);
+      setShowDropdown(false);
+      return;
+    }
+    
+    setSearching(true);
+    setShowDropdown(true);
+    try {
+      const results = await api.get(`/api/contacts/search?projectId=${project.id}&q=${encodeURIComponent(query)}`);
+      setSearchResults(results || []);
+    } catch (e) {
+      setSearchResults([]);
+    }
+    setSearching(false);
+  };
+
+  const selectContact = (contact) => {
+    setForm({
+      email: contact.email,
+      name: contact.name || ''
+    });
+    setSearchResults([]);
+    setShowDropdown(false);
+  };
 
   const handleCreate = async () => {
     if (!form.email) {
@@ -892,26 +903,85 @@ const ClientAccessModal = ({ isOpen, onClose, project, onSave }) => {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Acceso cliente" size="large">
       <div className="space-y-6">
+        {/* Create New Access with Search */}
         <div className="p-4 bg-apple-gray-50 rounded-xl">
           <h4 className="font-medium text-apple-gray-600 mb-3">Crear nuevo acceso</h4>
           <div className="grid grid-cols-2 gap-4 mb-3">
-            <Input
-              type="email"
-              value={form.email}
-              onChange={e => setForm({ ...form, email: e.target.value })}
-              placeholder="Email del cliente"
-            />
-            <Input
-              value={form.name}
-              onChange={e => setForm({ ...form, name: e.target.value })}
-              placeholder="Nombre (opcional)"
-            />
+            {/* Email field with search */}
+            <div className="relative">
+              <label className="block text-sm font-medium text-apple-gray-500 mb-1">Email</label>
+              <input
+                type="email"
+                value={form.email}
+                onChange={e => handleSearch(e.target.value, 'email')}
+                onFocus={() => searchResults.length > 0 && setShowDropdown(true)}
+                onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+                placeholder="Email del cliente"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
+                className="w-full px-3 py-2 text-sm bg-white border border-apple-gray-200 rounded-lg focus:outline-none focus:border-apple-blue"
+              />
+              {showDropdown && searchResults.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-apple-gray-200 rounded-lg shadow-lg max-h-48 overflow-auto">
+                  {searchResults.map((person, idx) => (
+                    <button
+                      key={idx}
+                      onMouseDown={() => selectContact(person)}
+                      className="w-full px-3 py-2 text-left hover:bg-apple-gray-50 flex items-center gap-2"
+                    >
+                      <div className="flex-1">
+                        <div className="text-sm text-apple-gray-600">{person.name}</div>
+                        <div className="text-xs text-apple-gray-400">{person.email}</div>
+                      </div>
+                      <span className="text-xs text-apple-gray-300">{person.source}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            {/* Name field with search */}
+            <div className="relative">
+              <label className="block text-sm font-medium text-apple-gray-500 mb-1">Nombre</label>
+              <input
+                value={form.name}
+                onChange={e => handleSearch(e.target.value, 'name')}
+                onFocus={() => searchResults.length > 0 && setShowDropdown(true)}
+                onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+                placeholder="Nombre (opcional)"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
+                className="w-full px-3 py-2 text-sm bg-white border border-apple-gray-200 rounded-lg focus:outline-none focus:border-apple-blue"
+              />
+              {showDropdown && searchResults.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-apple-gray-200 rounded-lg shadow-lg max-h-48 overflow-auto">
+                  {searchResults.map((person, idx) => (
+                    <button
+                      key={idx}
+                      onMouseDown={() => selectContact(person)}
+                      className="w-full px-3 py-2 text-left hover:bg-apple-gray-50 flex items-center gap-2"
+                    >
+                      <div className="flex-1">
+                        <div className="text-sm text-apple-gray-600">{person.name}</div>
+                        <div className="text-xs text-apple-gray-400">{person.email}</div>
+                      </div>
+                      <span className="text-xs text-apple-gray-300">{person.source}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-          <Button onClick={handleCreate} disabled={creating}>
+          <Button onClick={handleCreate} disabled={creating || !form.email}>
             {creating ? 'Creando...' : 'Crear y enviar email'}
           </Button>
         </div>
         
+        {/* Portal URL */}
         <div className="p-4 bg-purple-50 rounded-xl">
           <h4 className="font-medium text-apple-gray-600 mb-2">URL del portal</h4>
           <div className="flex items-center gap-2">
@@ -930,6 +1000,7 @@ const ClientAccessModal = ({ isOpen, onClose, project, onSave }) => {
           </div>
         </div>
         
+        {/* Existing Accesses */}
         <div>
           <h4 className="font-medium text-apple-gray-600 mb-3">Accesos existentes</h4>
           {loading ? (
