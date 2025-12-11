@@ -286,6 +286,25 @@ app.put('/api/projects/:id/phases/:phaseId', requireAuth, async (req, res) => {
   }
 });
 
+// Reorder phases
+app.put('/api/projects/:id/phases/reorder', requireAuth, async (req, res) => {
+  try {
+    const { order } = req.body; // [{id, order}, {id, order}, ...]
+    
+    for (const item of order) {
+      await db.query(
+        'UPDATE phases SET "order" = $1 WHERE id = $2',
+        [item.order, item.id]
+      );
+    }
+    
+    res.json({ success: true });
+  } catch (e) {
+    console.error('Error reordering phases:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.delete('/api/projects/:id/phases/:phaseId', requireAuth, async (req, res) => {
   try {
     const phase = await db.getPhase(req.params.phaseId);

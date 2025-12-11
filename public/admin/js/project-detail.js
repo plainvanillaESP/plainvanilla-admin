@@ -42,6 +42,15 @@ const ProjectDetailView = ({ projectId, onBack, onRefresh }) => {
     }
   };
 
+  const handleReorderPhases = async (newOrder) => {
+    try {
+      await api.put(`/api/projects/${projectId}/phases/reorder`, { order: newOrder });
+      loadProject();
+    } catch (e) {
+      toast.error('Error al reordenar fases');
+    }
+  };
+
   const loadProject = async () => {
     try {
       const data = await api.get(`/api/projects/${projectId}`);
@@ -190,6 +199,7 @@ const ProjectDetailView = ({ projectId, onBack, onRefresh }) => {
                   onEditPhase={p => { setEditingPhase(p); setShowPhaseModal(true); }}
                   onEditSession={s => { setEditingSession(s); setShowSessionModal(true); }}
                   onDeleteSession={handleDeleteSession}
+                  onReorderPhases={handleReorderPhases}
                 />
               )}
             </div>

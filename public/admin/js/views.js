@@ -16,8 +16,27 @@ const {
 // TIMELINE VIEW
 // ============================================
 
-const TimelineView = ({ phases, sessions, tasks, onEditPhase, onEditSession, onDeleteSession }) => {
+const TimelineView = ({ phases, sessions, tasks, onEditPhase, onEditSession, onDeleteSession, onReorderPhases }) => {
   const [expandedPhases, setExpandedPhases] = useState(new Set(phases.map(p => p.id)));
+  const phasesContainerRef = useRef(null);
+  
+  // Drag and drop para fases
+  useEffect(() => {
+    if (phasesContainerRef.current && window.Sortable && onReorderPhases) {
+      const sortable = new window.Sortable(phasesContainerRef.current, {
+        animation: 150,
+        handle: '.phase-drag-handle',
+        ghostClass: 'opacity-50',
+        onEnd: (evt) => {
+          const newOrder = Array.from(phasesContainerRef.current.children).map(
+            (el, index) => ({ id: el.dataset.phaseId, order: index })
+          );
+          onReorderPhases(newOrder);
+        }
+      });
+      return () => sortable.destroy();
+    }
+  }, [phases, onReorderPhases]);
   
   const togglePhase = (id) => {
     const newSet = new Set(expandedPhases);
@@ -39,7 +58,7 @@ const TimelineView = ({ phases, sessions, tasks, onEditPhase, onEditSession, onD
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" ref={phasesContainerRef}>
       {phases.map((phase, i) => {
         const phaseSessions = sessions.filter(s => s.phaseId === phase.id);
         const phaseTasks = tasks.filter(t => t.phaseId === phase.id);
@@ -49,12 +68,15 @@ const TimelineView = ({ phases, sessions, tasks, onEditPhase, onEditSession, onD
         const textColor = phaseTextColors[i % phaseTextColors.length];
         
         return (
-          <div key={phase.id} className={`${bgColor} rounded-xl overflow-hidden`}>
+          <div key={phase.id} data-phase-id={phase.id} className={`${bgColor} rounded-xl overflow-hidden`}>
             {/* Phase Header */}
             <div 
               className="p-4 flex items-center gap-4 cursor-pointer" 
               onClick={() => togglePhase(phase.id)}
             >
+              <div className="phase-drag-handle cursor-grab hover:cursor-grabbing p-1 -ml-2 text-gray-400 hover:text-gray-600">
+                <Icon name="drag_indicator" className="text-lg" />
+              </div>
               <Icon 
                 name={isExpanded ? 'expand_more' : 'chevron_right'} 
                 className={textColor} 
