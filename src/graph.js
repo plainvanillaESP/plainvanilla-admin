@@ -548,6 +548,181 @@ async function getUserPhoto(accessToken, userId) {
   }
 }
 
+
+// ============================================
+// M365 INTEGRATION - AUTO SETUP FUNCTIONS
+// ============================================
+
+async function createTeamFromGroup(accessToken, groupId) {
+  const client = getClient(accessToken);
+  const team = await client.api("/groups/" + groupId + "/team").put({
+    memberSettings: {
+      allowCreateUpdateChannels: true,
+      allowDeleteChannels: false,
+      allowAddRemoveApps: false,
+      allowCreateUpdateRemoveTabs: true,
+      allowCreateUpdateRemoveConnectors: false
+    },
+    messagingSettings: {
+      allowUserEditMessages: true,
+      allowUserDeleteMessages: true,
+      allowOwnerDeleteMessages: true,
+      allowTeamMentions: true,
+      allowChannelMentions: true
+    },
+    funSettings: {
+      allowGiphy: true,
+      giphyContentRating: "moderate",
+      allowStickersAndMemes: true,
+      allowCustomMemes: true
+    }
+  });
+  return team;
+}
+
+async function getGroupSite(accessToken, groupId) {
+  const client = getClient(accessToken);
+  const site = await client.api("/groups/" + groupId + "/sites/root").get();
+  return site;
+}
+
+async function addGroupMembers(accessToken, groupId, emails) {
+  const client = getClient(accessToken);
+  const results = [];
+  
+  for (const email of emails) {
+    try {
+      const users = await client.api("/users").filter("mail eq '" + email + "' or userPrincipalName eq '" + email + "'").get();
+      
+      if (users.value && users.value.length > 0) {
+        const userId = users.value[0].id;
+        await client.api("/groups/" + groupId + "/members/$ref").post({
+          "@odata.id": "https://graph.microsoft.com/v1.0/directoryObjects/" + userId
+        });
+        results.push({ email, success: true });
+      } else {
+        results.push({ email, success: false, error: "User not found" });
+      }
+    } catch (e) {
+      results.push({ email, success: false, error: e.message });
+    }
+  }
+  return results;
+}
+
+async function addGroupOwners(accessToken, groupId, emails) {
+  const client = getClient(accessToken);
+  const results = [];
+  
+  for (const email of emails) {
+    try {
+      const users = await client.api("/users").filter("mail eq '" + email + "' or userPrincipalName eq '" + email + "'").get();
+      
+      if (users.value && users.value.length > 0) {
+        const userId = users.value[0].id;
+        await client.api("/groups/" + groupId + "/owners/$ref").post({
+          "@odata.id": "https://graph.microsoft.com/v1.0/directoryObjects/" + userId
+        });
+        results.push({ email, success: true });
+      } else {
+        results.push({ email, success: false, error: "User not found" });
+      }
+    } catch (e) {
+      results.push({ email, success: false, error: e.message });
+    }
+  }
+  return results;
+}
+
+async function associateToHubSite(accessToken, siteId, hubSiteId) {
+  const client = getClient(accessToken);
+  try {
+    await client.api("/sites/" + siteId).patch({ hubSiteId: hubSiteId });
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+async function getHubSites(accessToken) {
+  const client = getClient(accessToken);
+  try {
+    const sites = await client.api("/sites?filter=isHubSite eq true").get();
+    return sites.value || [];
+  } catch (e) {
+    return [];
+  }
+}
+
+async function createDefaultPlannerBuckets(accessToken, planId) {
+  const defaultBuckets = ["Por hacer", "En curso", "Completado", "En espera"];
+  const results = [];
+  
+  for (let i = 0; i < defaultBuckets.length; i++) {
+    try {
+      const bucket = await createBucket(accessToken, planId, defaultBuckets[i], " " + String.fromCharCode(65 + i) + "!");
+      results.push(bucket);
+    } catch (e) {
+      console.error("Error creating bucket " + defaultBuckets[i] + ":", e.message);
+    }
+  }
+  return results;
+}
+
+async function setupFullM365Project(accessToken, projectName, projectDescription, teamEmails) {
+  projectDescription = projectDescription || "";
+  teamEmails = teamEmails || [];
+  const results = { success: false, steps: {} };
+  
+  try {
+    const mailNickname = projectName.toLowerCase().replace(/[^a-z0-9]/g, "").substring(0, 20);
+    const group = await createGroup(accessToken, "PV - " + projectName, mailNickname, projectDescription);
+    results.steps.group = { success: true, data: group };
+    
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    
+    try {
+      const team = await createTeamFromGroup(accessToken, group.id);
+      results.steps.team = { success: true, data: team };
+    } catch (e) {
+      results.steps.team = { success: false, error: e.message };
+    }
+    
+    try {
+      const site = await getGroupSite(accessToken, group.id);
+      results.steps.sharepoint = { success: true, data: site };
+    } catch (e) {
+      results.steps.sharepoint = { success: false, error: e.message };
+    }
+    
+    try {
+      const plan = await createPlan(accessToken, group.id, projectName);
+      results.steps.planner = { success: true, data: plan };
+      const buckets = await createDefaultPlannerBuckets(accessToken, plan.id);
+      results.steps.buckets = { success: true, data: buckets };
+    } catch (e) {
+      results.steps.planner = { success: false, error: e.message };
+    }
+    
+    if (teamEmails.length > 0) {
+      try {
+        const members = await addGroupMembers(accessToken, group.id, teamEmails);
+        results.steps.members = { success: true, data: members };
+      } catch (e) {
+        results.steps.members = { success: false, error: e.message };
+      }
+    }
+    
+    results.success = true;
+    results.groupId = group.id;
+    
+  } catch (e) {
+    results.error = e.message;
+  }
+  
+  return results;
+}
+
 module.exports = {
   getPhoto,
   getUserPhoto,
@@ -555,6 +730,15 @@ module.exports = {
   addAttendeesToMeeting,
   searchMailContacts,
   getClient,
+  // M365 Auto Setup
+  createTeamFromGroup,
+  getGroupSite,
+  addGroupMembers,
+  addGroupOwners,
+  associateToHubSite,
+  getHubSites,
+  createDefaultPlannerBuckets,
+  setupFullM365Project,
   // Usuario
   getMe,
   getMyPhoto,
