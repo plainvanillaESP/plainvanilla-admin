@@ -16,7 +16,7 @@ const {
 // TIMELINE VIEW
 // ============================================
 
-const TimelineView = ({ phases, sessions, tasks, onEditPhase, onEditSession }) => {
+const TimelineView = ({ phases, sessions, tasks, onEditPhase, onEditSession, onDeleteSession }) => {
   const [expandedPhases, setExpandedPhases] = useState(new Set(phases.map(p => p.id)));
   
   const togglePhase = (id) => {
@@ -151,6 +151,13 @@ const TimelineView = ({ phases, sessions, tasks, onEditPhase, onEditSession }) =
                               title="Copiar link"
                             >
                               <Icon name="content_copy" className="text-sm" />
+                            </button>
+                            <button
+                              onClick={() => onDeleteSession && onDeleteSession(s)}
+                              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Eliminar sesión"
+                            >
+                              <Icon name="delete" className="text-sm" />
                             </button>
                           </div>
                         )}
