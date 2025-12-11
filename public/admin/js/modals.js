@@ -62,7 +62,7 @@ const PhaseModal = ({ isOpen, onClose, phase, projectId, phases, onSave }) => {
 
 const handleSave = async () => {
     if (!form.title) {
-      toast.error('El titulo es requerido');
+      toast.error('El nombre es requerido');
       return;
     }
     
@@ -613,7 +613,7 @@ const TaskModal = ({ isOpen, onClose, task, projectId, phases, onSave }) => {
 
   const handleSave = async () => {
     if (!form.title) {
-      toast.error('El titulo es requerido');
+      toast.error('El nombre es requerido');
       return;
     }
     
